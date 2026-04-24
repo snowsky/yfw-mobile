@@ -50,7 +50,7 @@ npm run ios:expenses:bound
 npm run android:expenses:bound
 ```
 
-In YFW, configure the bound organization in `Settings -> Company -> Standalone Mobile Expense Service`, then set the same app ID in `EXPO_PUBLIC_EXPENSE_APP_ID`.
+In YFW, configure the bound organization in `Settings -> Expenses -> Standalone Mobile Expense Service`, then set the same app ID in `EXPO_PUBLIC_EXPENSE_APP_ID`.
 
 The first app lives at `apps/expenses` and currently includes:
 

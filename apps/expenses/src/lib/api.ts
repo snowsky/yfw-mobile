@@ -151,6 +151,8 @@ async function apiRequest<T>(
   }
 
   if (!options?.skipTenant) {
+    headers.set("X-Mobile-Expense-App-ID", EXPENSE_APP_ID);
+
     const user = await getStoredUser();
     if (user?.tenant_id) {
       headers.set("X-Tenant-ID", String(user.tenant_id));
@@ -226,6 +228,7 @@ export const expensesApi = {
 
     const headers: Record<string, string> = {};
     if (token) headers["Authorization"] = `Bearer ${token}`;
+    headers["X-Mobile-Expense-App-ID"] = EXPENSE_APP_ID;
     if (user?.tenant_id) headers["X-Tenant-ID"] = String(user.tenant_id);
 
     const response = await fetch(`${API_BASE_URL}/expenses/transcribe-audio`, {
@@ -267,6 +270,7 @@ export const expensesApi = {
 
     const headers: Record<string, string> = {};
     if (token) headers["Authorization"] = `Bearer ${token}`;
+    headers["X-Mobile-Expense-App-ID"] = EXPENSE_APP_ID;
     if (user?.tenant_id) headers["X-Tenant-ID"] = String(user.tenant_id);
 
     const response = await fetch(`${API_BASE_URL}/expenses/${expenseId}/upload-receipt`, {

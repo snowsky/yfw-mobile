@@ -34,8 +34,21 @@ export function AuthProvider({ children }: PropsWithChildren) {
   useEffect(() => {
     async function bootstrap() {
       const [token, storedUser] = await Promise.all([getAccessToken(), getStoredUser()]);
-      if (token) setAccessTokenState(token);
-      if (storedUser) setUser(normalizeUser(storedUser));
+      if (token) {
+        setAccessTokenState(token);
+        try {
+          const current = await authApi.me();
+          const normalizedUser = normalizeUser(current);
+          await setStoredUser(normalizedUser);
+          setUser(normalizedUser);
+        } catch {
+          await clearSession();
+          setAccessTokenState(null);
+          setUser(null);
+        }
+      } else if (storedUser) {
+        setUser(normalizeUser(storedUser));
+      }
       setIsReady(true);
     }
 

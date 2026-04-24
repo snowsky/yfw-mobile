@@ -1,7 +1,11 @@
 import * as SecureStore from "expo-secure-store";
 
-const ACCESS_TOKEN_KEY = "yfw.expenses.accessToken";
-const USER_KEY = "yfw.expenses.user";
+import { EXPENSE_APP_ID } from "./config";
+
+const scopedKey = (key: string) => `yfw.expenses.${EXPENSE_APP_ID}.${key}`;
+
+const ACCESS_TOKEN_KEY = scopedKey("accessToken");
+const USER_KEY = scopedKey("user");
 
 export type MobileUser = {
   id: number;
