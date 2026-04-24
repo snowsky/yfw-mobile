@@ -6,7 +6,7 @@ import { Feather } from "@expo/vector-icons";
 import { expensesApi } from "../../src/lib/api";
 import { useAuth } from "../../src/providers/AuthProvider";
 
-function getInboxState(expense: { analysis_status?: string; review_status?: string }) {
+function getInboxState(expense: { analysis_status?: string | null; review_status?: string | null }) {
   if (expense.analysis_status === "failed" || expense.review_status === "failed") {
     return { label: "Needs attention", icon: "alert-circle", tone: "#d97706" };
   }

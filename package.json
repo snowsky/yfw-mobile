@@ -8,9 +8,13 @@
   ],
   "scripts": {
     "dev:expenses": "npm run start --workspace @yfw-mobile/expenses",
+    "dev:expenses:bound": "EXPO_PUBLIC_API_URL=http://localhost:8000/api/v1 EXPO_PUBLIC_EXPENSE_APP_ID=yfw-expense-demo npm run start --workspace @yfw-mobile/expenses",
     "ios:expenses": "npm run ios --workspace @yfw-mobile/expenses",
+    "ios:expenses:bound": "EXPO_PUBLIC_API_URL=http://localhost:8000/api/v1 EXPO_PUBLIC_EXPENSE_APP_ID=yfw-expense-demo npm run ios --workspace @yfw-mobile/expenses",
     "android:expenses": "npm run android --workspace @yfw-mobile/expenses",
+    "android:expenses:bound": "EXPO_PUBLIC_API_URL=http://localhost:8000/api/v1 EXPO_PUBLIC_EXPENSE_APP_ID=yfw-expense-demo npm run android --workspace @yfw-mobile/expenses",
     "web:expenses": "npm run web --workspace @yfw-mobile/expenses",
+    "web:expenses:bound": "EXPO_PUBLIC_API_URL=http://localhost:8000/api/v1 EXPO_PUBLIC_EXPENSE_APP_ID=yfw-expense-demo npm run web --workspace @yfw-mobile/expenses",
     "android": "expo run:android",
     "ios": "expo run:ios"
   },

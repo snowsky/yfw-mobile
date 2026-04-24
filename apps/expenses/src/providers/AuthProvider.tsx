@@ -8,11 +8,23 @@ type AuthContextValue = {
   user: MobileUser | null;
   accessToken: string | null;
   login: (email: string, password: string) => Promise<void>;
+  signup: (payload: { email: string; password: string; first_name?: string; last_name?: string }) => Promise<void>;
   logout: () => Promise<void>;
   refreshMe: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
+
+type PartialMobileUser = Omit<MobileUser, "organizations"> & {
+  organizations?: MobileUser["organizations"];
+};
+
+function normalizeUser(user: PartialMobileUser): MobileUser {
+  return {
+    ...user,
+    organizations: user.organizations ?? [],
+  };
+}
 
 export function AuthProvider({ children }: PropsWithChildren) {
   const [isReady, setIsReady] = useState(false);
@@ -22,8 +34,21 @@ export function AuthProvider({ children }: PropsWithChildren) {
   useEffect(() => {
     async function bootstrap() {
       const [token, storedUser] = await Promise.all([getAccessToken(), getStoredUser()]);
-      if (token) setAccessTokenState(token);
-      if (storedUser) setUser(storedUser);
+      if (token) {
+        setAccessTokenState(token);
+        try {
+          const current = await authApi.me();
+          const normalizedUser = normalizeUser(current);
+          await setStoredUser(normalizedUser);
+          setUser(normalizedUser);
+        } catch {
+          await clearSession();
+          setAccessTokenState(null);
+          setUser(null);
+        }
+      } else if (storedUser) {
+        setUser(normalizeUser(storedUser));
+      }
       setIsReady(true);
     }
 
@@ -32,18 +57,31 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   async function login(email: string, password: string) {
     const response = await authApi.login(email, password);
+    const normalizedUser = normalizeUser(response.user);
     await Promise.all([
       setAccessToken(response.access_token),
-      setStoredUser(response.user)
+      setStoredUser(normalizedUser)
     ]);
     setAccessTokenState(response.access_token);
-    setUser(response.user);
+    setUser(normalizedUser);
+  }
+
+  async function signup(payload: { email: string; password: string; first_name?: string; last_name?: string }) {
+    const response = await authApi.signup(payload);
+    const normalizedUser = normalizeUser(response.user);
+    await Promise.all([
+      setAccessToken(response.access_token),
+      setStoredUser(normalizedUser)
+    ]);
+    setAccessTokenState(response.access_token);
+    setUser(normalizedUser);
   }
 
   async function refreshMe() {
     const current = await authApi.me();
-    await setStoredUser(current);
-    setUser(current);
+    const normalizedUser = normalizeUser(current);
+    await setStoredUser(normalizedUser);
+    setUser(normalizedUser);
   }
 
   async function logout() {
@@ -57,6 +95,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     user,
     accessToken,
     login,
+    signup,
     logout,
     refreshMe
   }), [isReady, user, accessToken]);

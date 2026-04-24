@@ -8,16 +8,19 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { authApi } from "../src/lib/api";
 import { useAuth } from "../src/providers/AuthProvider";
 
-export default function LoginScreen() {
-  const { accessToken, isReady, login } = useAuth();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+export default function SignupScreen() {
+  const { accessToken, isReady, signup } = useAuth();
   const serviceConfig = useQuery({
     queryKey: ["expense-mobile-config"],
     queryFn: authApi.getConfig,
   });
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!isReady) {
     return (
@@ -33,17 +36,23 @@ export default function LoginScreen() {
 
   const accentColor = serviceConfig.data?.branding.accent_color || "#10b981";
   const brandTitle = serviceConfig.data?.branding.title || "YFW Expenses";
-  const brandSubtitle =
-    serviceConfig.data?.branding.subtitle ||
-    "The standalone app keeps expense capture simple, fast, and organization-bound.";
 
-  async function handleLogin() {
+  async function handleSignup() {
     setError(null);
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
     setIsSubmitting(true);
     try {
-      await login(email.trim(), password);
+      await signup({
+        email: email.trim(),
+        password,
+        first_name: firstName.trim() || undefined,
+        last_name: lastName.trim() || undefined,
+      });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to log in.");
+      setError(err instanceof Error ? err.message : "Failed to sign up.");
     } finally {
       setIsSubmitting(false);
     }
@@ -54,31 +63,17 @@ export default function LoginScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <View style={[styles.heroCard, { backgroundColor: accentColor }]}>
           <Text style={styles.kicker}>{brandTitle}</Text>
-          <Text style={styles.heroTitle}>Capture in seconds</Text>
-          <Text style={styles.heroBody}>{brandSubtitle}</Text>
-
-          <View style={styles.featureRow}>
-            <Feather name="camera" size={16} color="#ecfdf5" />
-            <Text style={styles.featureText}>Scan receipts in a few taps</Text>
-          </View>
-          <View style={styles.featureRow}>
-            <Feather name="mic" size={16} color="#ecfdf5" />
-            <Text style={styles.featureText}>Turn voice notes into drafts</Text>
-          </View>
+          <Text style={styles.heroTitle}>Create your account</Text>
+          <Text style={styles.heroBody}>
+            Your account will be created inside the organization configured for this mobile service.
+          </Text>
         </View>
 
         <View style={styles.formCard}>
-          <Text style={styles.formTitle}>Sign in</Text>
+          <Text style={styles.formTitle}>Sign up</Text>
           <Text style={styles.formBody}>
-            Sign in to the organization-bound expense service managed in YFW.
+            Create an account and start sending expenses into the connected YFW organization.
           </Text>
-
-          {serviceConfig.isLoading ? (
-            <View style={styles.infoCard}>
-              <ActivityIndicator size="small" color="#0f766e" />
-              <Text style={styles.infoText}>Loading service configuration...</Text>
-            </View>
-          ) : null}
 
           {serviceConfig.error ? (
             <View style={styles.errorCard}>
@@ -91,6 +86,29 @@ export default function LoginScreen() {
             </View>
           ) : null}
 
+          {!serviceConfig.data?.signup_enabled && !serviceConfig.isLoading ? (
+            <View style={styles.infoCard}>
+              <Feather name="info" size={16} color="#0f766e" />
+              <Text style={styles.infoText}>
+                Sign up is disabled for this deployment. Contact your YFW administrator.
+              </Text>
+            </View>
+          ) : null}
+
+          <TextInput
+            style={styles.input}
+            placeholder="First name"
+            placeholderTextColor="#64748b"
+            value={firstName}
+            onChangeText={setFirstName}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Last name"
+            placeholderTextColor="#64748b"
+            value={lastName}
+            onChangeText={setLastName}
+          />
           <TextInput
             style={styles.input}
             autoCapitalize="none"
@@ -108,6 +126,14 @@ export default function LoginScreen() {
             value={password}
             onChangeText={setPassword}
           />
+          <TextInput
+            style={styles.input}
+            placeholder="Confirm password"
+            placeholderTextColor="#64748b"
+            secureTextEntry
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+          />
 
           {error ? (
             <View style={styles.errorCard}>
@@ -118,31 +144,22 @@ export default function LoginScreen() {
 
           <Pressable
             style={[styles.primaryButton, { backgroundColor: accentColor }]}
-            onPress={handleLogin}
-            disabled={isSubmitting || !serviceConfig.data?.enabled}
+            onPress={handleSignup}
+            disabled={isSubmitting || !serviceConfig.data?.enabled || serviceConfig.data?.signup_enabled === false}
           >
             {isSubmitting ? (
               <ActivityIndicator color="#ffffff" />
             ) : (
-              <Text style={styles.primaryButtonText}>Continue</Text>
+              <Text style={styles.primaryButtonText}>Create account</Text>
             )}
           </Pressable>
 
-          {serviceConfig.data?.signup_enabled ? (
-            <Text style={styles.footerText}>
-              Need an account?{" "}
-              <Link href={"/signup" as any} style={styles.footerLink}>
-                Sign up
-              </Link>
-            </Text>
-          ) : (
-            <View style={styles.infoCard}>
-              <Feather name="info" size={16} color="#0f766e" />
-              <Text style={styles.infoText}>
-                Sign up is disabled for this deployment. Ask your YFW administrator to invite or enable mobile signup.
-              </Text>
-            </View>
-          )}
+          <Text style={styles.footerText}>
+            Already have an account?{" "}
+            <Link href={"/login" as any} style={styles.footerLink}>
+              Sign in
+            </Link>
+          </Text>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -189,15 +206,6 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     color: "#ecfdf5",
     marginBottom: 2,
-  },
-  featureRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  featureText: {
-    fontSize: 13,
-    color: "#ecfdf5",
   },
   formCard: {
     borderRadius: 28,

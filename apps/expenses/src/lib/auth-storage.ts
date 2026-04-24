@@ -1,7 +1,11 @@
 import * as SecureStore from "expo-secure-store";
 
-const ACCESS_TOKEN_KEY = "yfw.expenses.accessToken";
-const USER_KEY = "yfw.expenses.user";
+import { EXPENSE_APP_ID } from "./config";
+
+const scopedKey = (key: string) => `yfw.expenses.${EXPENSE_APP_ID}.${key}`;
+
+const ACCESS_TOKEN_KEY = scopedKey("accessToken");
+const USER_KEY = scopedKey("user");
 
 export type MobileUser = {
   id: number;
@@ -10,7 +14,7 @@ export type MobileUser = {
   last_name?: string | null;
   role: string;
   tenant_id: number;
-  organizations?: Array<{ id: number; name: string; role?: string }>;
+  organizations: Array<{ id: number; name: string; role?: string }>;
 };
 
 export async function getAccessToken() {
@@ -29,7 +33,16 @@ export async function getStoredUser(): Promise<MobileUser | null> {
   const value = await SecureStore.getItemAsync(USER_KEY);
   if (!value) return null;
   try {
-    return JSON.parse(value) as MobileUser;
+    const parsed = JSON.parse(value) as Partial<MobileUser>;
+    return {
+      id: parsed.id ?? 0,
+      email: parsed.email ?? "",
+      first_name: parsed.first_name ?? null,
+      last_name: parsed.last_name ?? null,
+      role: parsed.role ?? "user",
+      tenant_id: parsed.tenant_id ?? 0,
+      organizations: parsed.organizations ?? [],
+    };
   } catch {
     return null;
   }

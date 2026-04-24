@@ -27,6 +27,31 @@ npm run dev:expenses
 
 Then scan the QR code with Expo Go or open the iOS/Android simulator.
 
+## Organization-Bound Expense Service
+
+To use the mobile app against the main YFW repo without a separate expense plugin:
+
+```bash
+cd ../api
+uvicorn main:app --reload --port 8000
+```
+
+Then, from `yfw-mobile/`:
+
+```bash
+npm install
+npm run dev:expenses:bound
+```
+
+For simulators:
+
+```bash
+npm run ios:expenses:bound
+npm run android:expenses:bound
+```
+
+In YFW, configure the bound organization in `Settings -> Expenses -> Standalone Mobile Expense Service`, then set the same app ID in `EXPO_PUBLIC_EXPENSE_APP_ID`.
+
 The first app lives at `apps/expenses` and currently includes:
 
 - login with bearer-token auth
@@ -38,7 +63,7 @@ The first app lives at `apps/expenses` and currently includes:
 
 ### Backend URL
 
-By default the Expo app uses:
+By default the Expo app uses the integrated YFW API:
 
 ```txt
 http://localhost:8000/api/v1
@@ -51,6 +76,12 @@ EXPO_PUBLIC_API_URL=http://YOUR_MACHINE_IP:8000/api/v1 npm run dev:expenses
 ```
 
 If you test on a physical phone, `localhost` will not point to your computer. Use your machine's LAN IP instead.
+
+For an organization-bound mobile build, pass both the YFW API URL and the app ID:
+
+```bash
+EXPO_PUBLIC_API_URL=http://YOUR_MACHINE_IP:8000/api/v1 EXPO_PUBLIC_EXPENSE_APP_ID=yfw-expense-demo npm run dev:expenses
+```
 
 ### Google SSO for mobile
 
