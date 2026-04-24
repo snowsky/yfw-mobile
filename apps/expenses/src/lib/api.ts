@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { API_BASE_URL } from "./config";
+import { API_BASE_URL, EXPENSE_APP_ID } from "./config";
 import { getAccessToken, getStoredUser } from "./auth-storage";
 
 // ── Schemas ───────────────────────────────────────────────────────────────────
@@ -25,10 +25,22 @@ const loginResponseSchema = z.object({
   user: mobileUserSchema
 });
 
-const ssoStatusSchema = z.object({
-  google: z.boolean(),
-  microsoft: z.boolean(),
-  has_sso: z.boolean()
+const expenseMobileConfigSchema = z.object({
+  enabled: z.boolean(),
+  app_id: z.string(),
+  signup_enabled: z.boolean(),
+  default_role: z.string(),
+  allowed_auth_methods: z.object({
+    password: z.boolean(),
+    google: z.boolean(),
+    microsoft: z.boolean()
+  }),
+  branding: z.object({
+    title: z.string().nullable().optional(),
+    subtitle: z.string().nullable().optional(),
+    accent_color: z.string().nullable().optional(),
+    logo_url: z.string().nullable().optional()
+  })
 });
 
 const parsedVoiceExpenseSchema = z.object({
@@ -102,7 +114,7 @@ const expenseSummarySchema = z.object({
 
 export type MobileUser = z.infer<typeof mobileUserSchema>;
 export type LoginResponse = z.infer<typeof loginResponseSchema>;
-export type SSOStatus = z.infer<typeof ssoStatusSchema>;
+export type ExpenseMobileConfig = z.infer<typeof expenseMobileConfigSchema>;
 export type ParsedVoiceExpense = z.infer<typeof parsedVoiceExpenseSchema>;
 export type Expense = z.infer<typeof expenseSchema>;
 export type ExpenseListItem = z.infer<typeof expenseListItemSchema>;
@@ -171,17 +183,27 @@ async function apiRequest<T>(
 // ── Auth API ──────────────────────────────────────────────────────────────────
 
 export const authApi = {
+  getConfig() {
+    return apiRequest(`/mobile/expenses/config?app_id=${encodeURIComponent(EXPENSE_APP_ID)}`, {
+      method: "GET",
+    }, expenseMobileConfigSchema, { skipAuth: true, skipTenant: true });
+  },
   login(email: string, password: string) {
-    return apiRequest("/auth/login", {
+    return apiRequest("/mobile/expenses/auth/login", {
       method: "POST",
-      body: JSON.stringify({ email, password })
+      body: JSON.stringify({ app_id: EXPENSE_APP_ID, email, password })
     }, loginResponseSchema, { skipAuth: true, skipTenant: true });
   },
-  getSSOStatus() {
-    return apiRequest("/auth/sso-status", { method: "GET" }, ssoStatusSchema, { skipAuth: true, skipTenant: true });
+  signup(payload: { email: string; password: string; first_name?: string; last_name?: string }) {
+    return apiRequest("/mobile/expenses/auth/signup", {
+      method: "POST",
+      body: JSON.stringify({ app_id: EXPENSE_APP_ID, ...payload })
+    }, loginResponseSchema, { skipAuth: true, skipTenant: true });
   },
   me() {
-    return apiRequest("/auth/me", { method: "GET" }, mobileUserSchema, { skipTenant: true });
+    return apiRequest(`/mobile/expenses/auth/me?app_id=${encodeURIComponent(EXPENSE_APP_ID)}`, {
+      method: "GET"
+    }, mobileUserSchema, { skipTenant: true });
   }
 };
 
