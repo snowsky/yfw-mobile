@@ -18,7 +18,8 @@
         {
           "microphonePermission": "Allow YFW Expenses to record your voice to capture expenses."
         }
-      ]
+      ],
+      "expo-font"
     ],
     "ios": {
       "supportsTablet": false,
