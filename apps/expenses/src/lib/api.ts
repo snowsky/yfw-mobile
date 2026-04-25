@@ -110,6 +110,13 @@ const expenseSummarySchema = z.object({
   })).optional().default([])
 });
 
+const digestPreferenceSchema = z.object({
+  enabled: z.boolean(),
+  frequency: z.enum(["daily", "weekly"]).default("weekly"),
+  next_run_at: z.string().nullable().optional(),
+  last_sent_at: z.string().nullable().optional()
+});
+
 // ── Exported types ────────────────────────────────────────────────────────────
 
 export type MobileUser = z.infer<typeof mobileUserSchema>;
@@ -119,6 +126,8 @@ export type ParsedVoiceExpense = z.infer<typeof parsedVoiceExpenseSchema>;
 export type Expense = z.infer<typeof expenseSchema>;
 export type ExpenseListItem = z.infer<typeof expenseListItemSchema>;
 export type ExpenseSummary = z.infer<typeof expenseSummarySchema>;
+export type ExpenseDigestPreference = z.infer<typeof digestPreferenceSchema>;
+export type ExpenseDigestSelection = "off" | "daily" | "weekly";
 
 export type ExpenseDraft = {
   amount: number | null;
@@ -298,5 +307,23 @@ export const expensesApi = {
 
   getSummary() {
     return apiRequest("/expenses/analytics/summary?period=month&compare_with_previous=true", {}, expenseSummarySchema);
+  }
+};
+
+// ── Preferences API ──────────────────────────────────────────────────────────
+
+export const preferencesApi = {
+  getExpenseDigestPreference() {
+    return apiRequest("/notifications/expense-digest/preferences", {}, digestPreferenceSchema);
+  },
+
+  updateExpenseDigestPreference(selection: ExpenseDigestSelection) {
+    return apiRequest("/notifications/expense-digest/preferences", {
+      method: "PUT",
+      body: JSON.stringify({
+        enabled: selection !== "off",
+        frequency: selection === "daily" ? "daily" : "weekly"
+      })
+    }, digestPreferenceSchema);
   }
 };
