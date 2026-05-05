@@ -254,7 +254,6 @@ export default function CaptureScreen() {
             style={StyleSheet.absoluteFillObject}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            borderRadius={28}
           />
           <Text style={styles.heroTitle}>Capture in seconds</Text>
           <Text style={styles.heroBody}>
@@ -262,7 +261,9 @@ export default function CaptureScreen() {
           </Text>
 
           <Pressable
-            style={[styles.heroAction, styles.heroActionPrimary]}
+            accessibilityRole="button"
+            accessibilityLabel={receiptPhase === "done" ? "Scan another receipt" : "Scan receipt"}
+            style={[styles.heroAction, styles.heroActionPrimary, receiptPhase === "uploading" && styles.buttonDisabled]}
             onPress={canScanReceipt ? handlePickReceipt : resetReceipt}
             disabled={receiptPhase === "uploading"}
           >
@@ -279,9 +280,12 @@ export default function CaptureScreen() {
           </Pressable>
 
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={voicePhase === "recording" ? "Stop recording" : "Record voice expense"}
             style={[
               styles.heroAction,
               voicePhase === "recording" ? styles.heroActionRecording : styles.heroActionSecondary,
+              isVoiceBusy && styles.buttonDisabled,
             ]}
             onPress={voicePhase === "saved" ? resetVoice : handleToggleRecording}
             disabled={isVoiceBusy}
@@ -333,7 +337,12 @@ export default function CaptureScreen() {
           {voicePhase !== "saved" && voicePhase !== "recording" && (
             <View style={styles.inlineRow}>
               <Pressable
-                style={[styles.inlineBtn, styles.outlineBtn]}
+                accessibilityRole="button"
+                style={[
+                  styles.inlineBtn,
+                  styles.outlineBtn,
+                  (isVoiceBusy || !transcript.trim()) && styles.buttonDisabled,
+                ]}
                 onPress={() => parseDraft()}
                 disabled={isVoiceBusy || !transcript.trim()}
               >
@@ -369,7 +378,8 @@ export default function CaptureScreen() {
               </Text>
 
               <Pressable
-                style={[styles.inlineBtn, styles.primaryBtn]}
+                accessibilityRole="button"
+                style={[styles.inlineBtn, styles.primaryBtn, voicePhase === "saving" && styles.buttonDisabled]}
                 onPress={saveVoiceExpense}
                 disabled={voicePhase === "saving"}
               >
@@ -410,11 +420,11 @@ export default function CaptureScreen() {
 
           {receiptPhase === "previewing" && (
             <View style={styles.inlineRow}>
-              <Pressable style={[styles.inlineBtn, styles.primaryBtn]} onPress={handleUploadReceipt}>
+              <Pressable accessibilityRole="button" style={[styles.inlineBtn, styles.primaryBtn]} onPress={handleUploadReceipt}>
                 <Feather name="upload" size={15} color="#ffffff" />
                 <Text style={styles.primaryBtnText}>Upload & save</Text>
               </Pressable>
-              <Pressable style={[styles.inlineBtn, styles.outlineBtn]} onPress={resetReceipt}>
+              <Pressable accessibilityRole="button" style={[styles.inlineBtn, styles.outlineBtn]} onPress={resetReceipt}>
                 <Text style={styles.outlineBtnText}>Discard</Text>
               </Pressable>
             </View>
@@ -437,7 +447,11 @@ export default function CaptureScreen() {
           )}
 
           {receiptPhase === "idle" && (
-            <Pressable style={[styles.inlineBtn, styles.outlineBtn, { alignSelf: "flex-start" }]} onPress={handlePickReceipt}>
+            <Pressable
+              accessibilityRole="button"
+              style={[styles.inlineBtn, styles.outlineBtn, { alignSelf: "flex-start" }]}
+              onPress={handlePickReceipt}
+            >
               <Feather name="camera" size={15} color="#0f172a" />
               <Text style={styles.outlineBtnText}>Open camera</Text>
             </Pressable>
@@ -464,7 +478,7 @@ const styles = StyleSheet.create({
 
   // Hero card
   heroCard: { 
-    borderRadius: 28, 
+    borderRadius: 18, 
     padding: 20, 
     gap: 12, 
     backgroundColor: "#10b981",
@@ -474,22 +488,24 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
     position: "relative",
+    overflow: "hidden",
   },
   heroTitle: { fontFamily: "Outfit_700Bold", fontSize: 28, color: "#ffffff" },
   heroBody: { fontFamily: "Outfit_400Regular", fontSize: 15, lineHeight: 22, color: "#ecfdf5" },
   heroAction: {
-    minHeight: 56, borderRadius: 20, paddingHorizontal: 16,
+    minHeight: 56, borderRadius: 16, paddingHorizontal: 16,
     alignItems: "center", flexDirection: "row", gap: 10,
   },
   heroActionPrimary: { backgroundColor: "rgba(255,255,255,0.96)" },
   heroActionSecondary: { backgroundColor: "rgba(255,255,255,0.14)" },
   heroActionRecording: { backgroundColor: "#ef4444" },
   heroActionPrimaryText: { fontFamily: "Outfit_700Bold", fontSize: 16, color: "#064e3b" },
-  heroActionSecondaryText: { fontFamily: "Outfit_600SemiBold", fontSize: 16, color: "#ffffff" },
+  heroActionSecondaryText: { fontFamily: "Outfit_600SemiBold", fontSize: 16, color: "#ffffff", flexShrink: 1 },
+  buttonDisabled: { opacity: 0.55 },
 
   // Section cards
   sectionCard: { 
-    borderRadius: 28, 
+    borderRadius: 18, 
     padding: 18, 
     gap: 14, 
     backgroundColor: "#ffffff",
@@ -506,7 +522,7 @@ const styles = StyleSheet.create({
 
   // Text input
   textarea: {
-    minHeight: 88, borderWidth: 1, borderColor: "rgba(0,0,0,0.05)", borderRadius: 20,
+    minHeight: 88, borderWidth: 1, borderColor: "#e2e8f0", borderRadius: 16,
     paddingHorizontal: 16, paddingVertical: 14, backgroundColor: "#f8fafc",
     color: "#0F172A", textAlignVertical: "top", fontFamily: "Outfit_400Regular", fontSize: 15,
   },
@@ -514,7 +530,7 @@ const styles = StyleSheet.create({
   // Inline buttons
   inlineRow: { flexDirection: "row", gap: 10, flexWrap: "wrap" },
   inlineBtn: {
-    minHeight: 46, paddingHorizontal: 18, borderRadius: 18,
+    minHeight: 46, paddingHorizontal: 18, borderRadius: 14,
     alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 8,
   },
   outlineBtn: { borderWidth: 1, borderColor: "#e2e8f0", backgroundColor: "#ffffff" },
@@ -524,18 +540,18 @@ const styles = StyleSheet.create({
 
   // Draft preview
   draftCard: {
-    borderRadius: 20, padding: 16, gap: 8, backgroundColor: "rgba(16, 185, 129, 0.05)",
+    borderRadius: 16, padding: 16, gap: 8, backgroundColor: "rgba(16, 185, 129, 0.05)",
     borderWidth: 1, borderColor: "rgba(16, 185, 129, 0.2)",
   },
-  draftRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
-  draftAmount: { fontFamily: "Outfit_700Bold", fontSize: 22, color: "#065f46" },
+  draftRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", gap: 12 },
+  draftAmount: { flex: 1, fontFamily: "Outfit_700Bold", fontSize: 22, color: "#065f46" },
   draftConfidence: { fontFamily: "Outfit_600SemiBold", fontSize: 12, marginTop: 4 },
   draftMeta: { fontFamily: "Outfit_500Medium", fontSize: 14, color: "#475569", lineHeight: 20 },
-  draftParser: { fontFamily: "Outfit_400Regular", fontSize: 12, color: "#94a3b8", letterSpacing: 0.5 },
+  draftParser: { fontFamily: "Outfit_400Regular", fontSize: 12, color: "#94a3b8" },
 
   // Receipt preview
   receiptPreview: {
-    width: "100%", height: 200, borderRadius: 20, backgroundColor: "#f1f5f9",
+    width: "100%", height: 200, borderRadius: 16, backgroundColor: "#f1f5f9",
   },
 
   // Status rows

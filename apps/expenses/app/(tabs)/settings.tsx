@@ -56,7 +56,7 @@ export default function SettingsScreen() {
 
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <View>
+            <View style={styles.cardHeaderText}>
               <Text style={styles.cardTitle}>Expense digest</Text>
               <Text style={styles.cardBody}>Personal email summaries for expenses you create.</Text>
             </View>
@@ -99,7 +99,7 @@ export default function SettingsScreen() {
             </View>
             <View style={styles.accountText}>
               <Text style={styles.accountName}>{displayName}</Text>
-              <Text style={styles.accountMeta}>{user?.email}</Text>
+              <Text style={styles.accountMeta} numberOfLines={1}>{user?.email}</Text>
             </View>
           </View>
           <Pressable accessibilityRole="button" onPress={logout} style={styles.logoutButton}>
@@ -145,7 +145,7 @@ const styles = StyleSheet.create({
     color: "#64748B",
   },
   card: {
-    borderRadius: 24,
+    borderRadius: 18,
     padding: 18,
     gap: 16,
     backgroundColor: "#ffffff",
@@ -161,6 +161,10 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     gap: 16,
   },
+  cardHeaderText: {
+    flex: 1,
+    minWidth: 0,
+  },
   cardTitle: {
     fontFamily: "Outfit_700Bold",
     fontSize: 19,
@@ -168,7 +172,6 @@ const styles = StyleSheet.create({
   },
   cardBody: {
     marginTop: 4,
-    maxWidth: 260,
     fontFamily: "Outfit_400Regular",
     fontSize: 14,
     lineHeight: 20,
@@ -192,7 +195,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 8,
     padding: 4,
-    borderRadius: 18,
+    borderRadius: 16,
     backgroundColor: "#f1f5f9",
     borderWidth: 1,
     borderColor: "#e2e8f0",
@@ -200,7 +203,7 @@ const styles = StyleSheet.create({
   segmentButton: {
     flex: 1,
     minHeight: 48,
-    borderRadius: 14,
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
     flexDirection: "row",
