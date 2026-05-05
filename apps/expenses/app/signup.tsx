@@ -37,6 +37,14 @@ export default function SignupScreen() {
   }
 
   const brandTitle = serviceConfig.data?.branding.title || "YFW Expenses";
+  const canSubmit = Boolean(
+    email.trim() &&
+      password &&
+      confirmPassword &&
+      serviceConfig.data?.enabled &&
+      serviceConfig.data?.signup_enabled !== false &&
+      !isSubmitting
+  );
 
   async function handleSignup() {
     setError(null);
@@ -74,8 +82,8 @@ export default function SignupScreen() {
             <View style={styles.logoBadge}>
               <Feather name="user-plus" size={28} color="#059669" />
             </View>
-            <Text style={styles.heroTitle}>Create Account</Text>
-            <Text style={styles.heroBody}>Join {brandTitle} organization.</Text>
+            <Text style={styles.heroTitle}>Create account</Text>
+            <Text style={styles.heroBody}>Join {brandTitle}.</Text>
           </View>
 
           <BlurView intensity={Platform.OS === 'ios' ? 40 : 80} tint="light" style={styles.formCard}>
@@ -126,9 +134,11 @@ export default function SignupScreen() {
               <TextInput
                 style={styles.input}
                 autoCapitalize="none"
+                autoComplete="email"
                 keyboardType="email-address"
                 placeholder="Email address"
                 placeholderTextColor="#94a3b8"
+                textContentType="emailAddress"
                 value={email}
                 onChangeText={setEmail}
               />
@@ -141,6 +151,7 @@ export default function SignupScreen() {
                 placeholder="Password"
                 placeholderTextColor="#94a3b8"
                 secureTextEntry
+                textContentType="newPassword"
                 value={password}
                 onChangeText={setPassword}
               />
@@ -153,6 +164,7 @@ export default function SignupScreen() {
                 placeholder="Confirm password"
                 placeholderTextColor="#94a3b8"
                 secureTextEntry
+                textContentType="newPassword"
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
               />
@@ -169,22 +181,21 @@ export default function SignupScreen() {
               style={({ pressed }) => [
                 styles.primaryButton,
                 pressed && styles.primaryButtonPressed,
-                (!serviceConfig.data?.enabled || serviceConfig.data?.signup_enabled === false || isSubmitting) && styles.primaryButtonDisabled
+                !canSubmit && styles.primaryButtonDisabled
               ]}
               onPress={handleSignup}
-              disabled={isSubmitting || !serviceConfig.data?.enabled || serviceConfig.data?.signup_enabled === false}
+              disabled={!canSubmit}
             >
               <LinearGradient
                 colors={["#10b981", "#059669"]}
                 style={StyleSheet.absoluteFillObject}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
-                borderRadius={16}
               />
               {isSubmitting ? (
                 <ActivityIndicator color="#ffffff" />
               ) : (
-                <Text style={styles.primaryButtonText}>Create Account</Text>
+                <Text style={styles.primaryButtonText}>Create account</Text>
               )}
             </Pressable>
 
@@ -249,7 +260,6 @@ const styles = StyleSheet.create({
     fontSize: 32,
     color: "#0F172A",
     marginBottom: 8,
-    letterSpacing: -0.5,
   },
   heroBody: {
     fontFamily: "Outfit_400Regular",
@@ -335,6 +345,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 4,
+    overflow: "hidden",
   },
   primaryButtonPressed: { transform: [{ scale: 0.98 }] },
   primaryButtonDisabled: { opacity: 0.5 },
@@ -342,7 +353,6 @@ const styles = StyleSheet.create({
     fontFamily: "Outfit_600SemiBold",
     fontSize: 16,
     color: "#ffffff",
-    letterSpacing: 0.5,
   },
   divider: {
     flexDirection: "row",

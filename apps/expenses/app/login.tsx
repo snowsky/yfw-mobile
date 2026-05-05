@@ -34,6 +34,7 @@ export default function LoginScreen() {
   }
 
   const brandTitle = serviceConfig.data?.branding.title || "YFW Expenses";
+  const canSubmit = Boolean(email.trim() && password && serviceConfig.data?.enabled && !isSubmitting);
 
   async function handleLogin() {
     setError(null);
@@ -95,9 +96,11 @@ export default function LoginScreen() {
               <TextInput
                 style={styles.input}
                 autoCapitalize="none"
+                autoComplete="email"
                 keyboardType="email-address"
                 placeholder="Email address"
                 placeholderTextColor="#94a3b8"
+                textContentType="emailAddress"
                 value={email}
                 onChangeText={setEmail}
               />
@@ -110,6 +113,7 @@ export default function LoginScreen() {
                 placeholder="Password"
                 placeholderTextColor="#94a3b8"
                 secureTextEntry
+                textContentType="password"
                 value={password}
                 onChangeText={setPassword}
               />
@@ -126,22 +130,21 @@ export default function LoginScreen() {
               style={({ pressed }) => [
                 styles.primaryButton,
                 pressed && styles.primaryButtonPressed,
-                (!serviceConfig.data?.enabled || isSubmitting) && styles.primaryButtonDisabled
+                !canSubmit && styles.primaryButtonDisabled
               ]}
               onPress={handleLogin}
-              disabled={isSubmitting || !serviceConfig.data?.enabled}
+              disabled={!canSubmit}
             >
               <LinearGradient
                 colors={["#10b981", "#059669"]}
                 style={StyleSheet.absoluteFillObject}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
-                borderRadius={16}
               />
               {isSubmitting ? (
                 <ActivityIndicator color="#ffffff" />
               ) : (
-                <Text style={styles.primaryButtonText}>Sign In</Text>
+                <Text style={styles.primaryButtonText}>Sign in</Text>
               )}
             </Pressable>
 
@@ -211,7 +214,6 @@ const styles = StyleSheet.create({
     fontSize: 32,
     color: "#0F172A",
     marginBottom: 8,
-    letterSpacing: -0.5,
   },
   heroBody: {
     fontFamily: "Outfit_400Regular",
@@ -302,6 +304,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 4,
+    overflow: "hidden",
   },
   primaryButtonPressed: { transform: [{ scale: 0.98 }] },
   primaryButtonDisabled: { opacity: 0.5 },
@@ -309,7 +312,6 @@ const styles = StyleSheet.create({
     fontFamily: "Outfit_600SemiBold",
     fontSize: 16,
     color: "#ffffff",
-    letterSpacing: 0.5,
   },
   divider: {
     flexDirection: "row",

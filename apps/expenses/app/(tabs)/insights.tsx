@@ -1,4 +1,4 @@
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useQuery } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -25,6 +25,9 @@ export default function InsightsScreen() {
   const current = query.data?.current_period;
   const previous = query.data?.previous_period;
   const change = query.data?.changes?.total_amount_percent ?? 0;
+  const categoryBreakdown = (query.data?.category_breakdown ?? []).slice(0, 5);
+  const changeIsIncrease = change > 0;
+  const changeTone = changeIsIncrease ? "#dc2626" : "#059669";
 
   const cards = [
     {
@@ -44,6 +47,7 @@ export default function InsightsScreen() {
       value: `${change >= 0 ? "+" : ""}${change.toFixed(1)}%`,
       detail: "Compared with previous period",
       icon: change > 0 ? "arrow-up-right" : "arrow-down-right",
+      tone: changeTone,
     },
   ];
 
@@ -51,26 +55,47 @@ export default function InsightsScreen() {
     <SafeAreaView edges={["top"]} style={styles.safeArea}>
       <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
         <View style={styles.heroCard}>
-          <Text style={styles.heroTitle}>Simple, personal, glanceable</Text>
-          <Text style={styles.heroBody}>
-            Mobile insights should answer “how am I doing?” in a few seconds.
-          </Text>
+          <Text style={styles.heroLabel}>This month</Text>
+          <Text style={styles.heroTitle}>{asCurrency(current?.total_amount)}</Text>
+          <View style={styles.heroMetaRow}>
+            <Text style={styles.heroBody}>{current?.count ?? 0} expenses</Text>
+            <View style={[styles.changePill, { backgroundColor: changeIsIncrease ? "#fef2f2" : "#ecfdf5" }]}>
+              <Feather name={changeIsIncrease ? "trending-up" : "trending-down"} size={14} color={changeTone} />
+              <Text style={[styles.changePillText, { color: changeTone }]}>
+                {change >= 0 ? "+" : ""}{change.toFixed(1)}%
+              </Text>
+            </View>
+          </View>
         </View>
 
         {query.isLoading ? (
           <View style={styles.metricCard}>
             <Text style={styles.emptyText}>Loading monthly summary...</Text>
           </View>
+        ) : query.isError ? (
+          <View style={styles.metricCard}>
+            <View style={styles.metricTextWrap}>
+              <Text style={styles.emptyTitle}>Insights could not load</Text>
+              <Text style={styles.emptyText}>
+                {query.error instanceof Error ? query.error.message : "Try again shortly."}
+              </Text>
+            </View>
+            <Pressable style={styles.iconButton} onPress={() => query.refetch()}>
+              <Feather name="rotate-cw" size={17} color="#334155" />
+            </Pressable>
+          </View>
         ) : (
           cards.map((card) => (
             <View key={card.title} style={styles.metricCard}>
-              <View>
+              <View style={styles.metricTextWrap}>
                 <Text style={styles.metricLabel}>{card.title}</Text>
-                <Text style={styles.metricValue}>{card.value}</Text>
+                <Text style={styles.metricValue} numberOfLines={1} adjustsFontSizeToFit>
+                  {card.value}
+                </Text>
                 <Text style={styles.metricDetail}>{card.detail}</Text>
               </View>
               <View style={styles.metricIconWrap}>
-                <Feather name={card.icon as any} size={18} color="#059669" />
+                <Feather name={card.icon as any} size={18} color={card.tone ?? "#059669"} />
               </View>
             </View>
           ))
@@ -78,26 +103,28 @@ export default function InsightsScreen() {
 
         <View style={styles.breakdownCard}>
           <Text style={styles.breakdownTitle}>Category breakdown</Text>
-          <Text style={styles.breakdownBody}>
-            This is the first glanceable chart card for the standalone app.
-          </Text>
+          <Text style={styles.breakdownBody}>Your top categories for the current period.</Text>
 
-          {(query.data?.category_breakdown ?? []).slice(0, 5).map((category) => (
-            <View key={category.category} style={styles.categoryRow}>
-              <View style={styles.categoryRowTop}>
-                <Text style={styles.categoryName}>{category.category}</Text>
-                <Text style={styles.categoryAmount}>{asCurrency(category.total_amount)}</Text>
+          {categoryBreakdown.length === 0 && !query.isLoading ? (
+            <Text style={styles.emptyText}>No category data yet. Capture expenses to build this view.</Text>
+          ) : (
+            categoryBreakdown.map((category) => (
+              <View key={category.category} style={styles.categoryRow}>
+                <View style={styles.categoryRowTop}>
+                  <Text style={styles.categoryName} numberOfLines={1}>{category.category}</Text>
+                  <Text style={styles.categoryAmount}>{asCurrency(category.total_amount)}</Text>
+                </View>
+                <View style={styles.barTrack}>
+                  <View
+                    style={[
+                      styles.barFill,
+                      { width: `${Math.min(100, Number(category.percentage || 0))}%` },
+                    ]}
+                  />
+                </View>
               </View>
-              <View style={styles.barTrack}>
-                <View
-                  style={[
-                    styles.barFill,
-                    { width: `${Math.min(100, Number(category.percentage || 0))}%` },
-                  ]}
-                />
-              </View>
-            </View>
-          ))}
+            ))
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -109,9 +136,9 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: "#F8FAFC" },
   content: { padding: 16, gap: 16 },
   heroCard: {
-    borderRadius: 28,
+    borderRadius: 18,
     padding: 20,
-    gap: 8,
+    gap: 10,
     backgroundColor: "#0F172A",
     shadowColor: "#cbd5e1",
     shadowOffset: { width: 0, height: 4 },
@@ -119,10 +146,21 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
   },
+  heroLabel: {
+    fontFamily: "Outfit_600SemiBold",
+    fontSize: 13,
+    color: "#cbd5e1",
+  },
   heroTitle: {
     fontFamily: "Outfit_700Bold",
-    fontSize: 28,
+    fontSize: 34,
     color: "#ffffff",
+  },
+  heroMetaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    flexWrap: "wrap",
   },
   heroBody: {
     fontFamily: "Outfit_400Regular",
@@ -130,8 +168,20 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     color: "#cbd5e1",
   },
+  changePill: {
+    minHeight: 30,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+  },
+  changePillText: {
+    fontFamily: "Outfit_700Bold",
+    fontSize: 12,
+  },
   metricCard: {
-    borderRadius: 28,
+    borderRadius: 18,
     padding: 18,
     backgroundColor: "#ffffff",
     flexDirection: "row",
@@ -143,6 +193,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 2,
+  },
+  metricTextWrap: {
+    flex: 1,
+    minWidth: 0,
   },
   metricLabel: {
     fontFamily: "Outfit_500Medium",
@@ -169,8 +223,18 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "rgba(16, 185, 129, 0.1)",
   },
+  iconButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#f8fafc",
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+  },
   breakdownCard: {
-    borderRadius: 28,
+    borderRadius: 18,
     padding: 18,
     gap: 12,
     backgroundColor: "#ffffff",
@@ -200,8 +264,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   categoryName: {
+    flex: 1,
+    minWidth: 0,
+    marginRight: 12,
     fontFamily: "Outfit_500Medium",
     fontSize: 14,
+    color: "#0F172A",
+  },
+  emptyTitle: {
+    fontFamily: "Outfit_700Bold",
+    fontSize: 18,
     color: "#0F172A",
   },
   categoryAmount: {
