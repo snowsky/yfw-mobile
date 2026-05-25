@@ -1,8 +1,9 @@
-import { useMemo } from "react";
-import { ScrollView, StyleSheet, Text, View, Pressable } from "react-native";
-import { useQuery } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View, Pressable } from "react-native";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
 
 import { expensesApi } from "../../src/lib/api";
 import { useAuth } from "../../src/providers/AuthProvider";
@@ -36,10 +37,30 @@ function formatDateLabel(dateString: string) {
 
 export default function InboxScreen() {
   const { accessToken } = useAuth();
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const [pendingId, setPendingId] = useState<number | null>(null);
+
   const query = useQuery({
     queryKey: ["expenses", "inbox"],
     queryFn: expensesApi.getExpenses,
     enabled: Boolean(accessToken),
+  });
+
+  const approveMutation = useMutation({
+    mutationFn: (id: number) => expensesApi.acceptReview(id),
+    onSettled: () => {
+      setPendingId(null);
+      queryClient.invalidateQueries({ queryKey: ["expenses"] });
+    },
+  });
+
+  const rejectMutation = useMutation({
+    mutationFn: (id: number) => expensesApi.rejectReview(id),
+    onSettled: () => {
+      setPendingId(null);
+      queryClient.invalidateQueries({ queryKey: ["expenses"] });
+    },
   });
 
   const items = useMemo(
@@ -115,9 +136,17 @@ export default function InboxScreen() {
         ) : (
           items.map((item) => {
             const state = getInboxState(item);
+            const isPendingReview = item.review_status === "pending";
+            const isActing = pendingId === item.id;
 
             return (
-              <View key={item.id} style={styles.cardColumn}>
+              <Pressable
+                key={item.id}
+                accessibilityRole="button"
+                accessibilityLabel={`Open expense ${item.vendor ?? item.category}`}
+                onPress={() => router.push(`/expense/${item.id}` as never)}
+                style={({ pressed }) => [styles.cardColumn, pressed && styles.cardPressed]}
+              >
                 <View style={styles.cardTopRow}>
                   <View style={styles.cardMain}>
                     <Text style={styles.amount} numberOfLines={1} adjustsFontSizeToFit>
@@ -139,7 +168,46 @@ export default function InboxScreen() {
                 <Text style={styles.detailText}>
                   Attachments: {item.attachments_count ?? 0} • Analysis: {item.analysis_status ?? "not_started"}
                 </Text>
-              </View>
+
+                {isPendingReview ? (
+                  <View style={styles.actionRow}>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="Approve expense"
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        setPendingId(item.id);
+                        approveMutation.mutate(item.id);
+                      }}
+                      disabled={isActing}
+                      style={[styles.approveBtn, isActing && styles.buttonDisabled]}
+                    >
+                      {isActing && approveMutation.isPending ? (
+                        <ActivityIndicator size="small" color="#ffffff" />
+                      ) : (
+                        <Text style={styles.actionBtnText}>Approve</Text>
+                      )}
+                    </Pressable>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="Reject expense"
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        setPendingId(item.id);
+                        rejectMutation.mutate(item.id);
+                      }}
+                      disabled={isActing}
+                      style={[styles.rejectBtn, isActing && styles.buttonDisabled]}
+                    >
+                      {isActing && rejectMutation.isPending ? (
+                        <ActivityIndicator size="small" color="#ffffff" />
+                      ) : (
+                        <Text style={styles.actionBtnText}>Reject</Text>
+                      )}
+                    </Pressable>
+                  </View>
+                ) : null}
+              </Pressable>
             );
           })
         )}
@@ -244,6 +312,29 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 2,
+  },
+  cardPressed: { opacity: 0.7 },
+  actionRow: { flexDirection: "row", gap: 10, marginTop: 4 },
+  approveBtn: {
+    flex: 1,
+    minHeight: 42,
+    borderRadius: 12,
+    backgroundColor: "#059669",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  rejectBtn: {
+    flex: 1,
+    minHeight: 42,
+    borderRadius: 12,
+    backgroundColor: "#dc2626",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  actionBtnText: {
+    color: "#ffffff",
+    fontFamily: "Outfit_700Bold",
+    fontSize: 14,
   },
   cardTopRow: {
     flexDirection: "row",

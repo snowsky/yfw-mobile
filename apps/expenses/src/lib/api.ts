@@ -75,14 +75,41 @@ const expenseListItemSchema = z.object({
 const expenseSchema = z.object({
   id: z.number(),
   amount: z.number().nullable().optional(),
-  currency: z.string().default("USD"),
+  currency: z.string(),
   expense_date: z.string(),
   category: z.string(),
   vendor: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
+  status: z.string().nullable().optional(),
+  label: z.string().nullable().optional(),
+  labels: z.array(z.string()).nullable().optional(),
+  payment_method: z.string().nullable().optional(),
+  reference_number: z.string().nullable().optional(),
+  tax_amount: z.number().nullable().optional(),
+  total_amount: z.number().nullable().optional(),
   analysis_status: z.string().nullable().optional(),
+  analysis_error: z.string().nullable().optional(),
   review_status: z.string().nullable().optional(),
+  reviewed_at: z.string().nullable().optional(),
+  created_at: z.string().nullable().optional(),
+  updated_at: z.string().nullable().optional(),
+  created_by_username: z.string().nullable().optional(),
   attachments_count: z.number().nullable().optional()
+});
+
+const expenseUpdateSchema = z.object({
+  amount: z.number().nullable().optional(),
+  currency: z.string().nullable().optional(),
+  expense_date: z.string().nullable().optional(),
+  category: z.string().nullable().optional(),
+  vendor: z.string().nullable().optional(),
+  notes: z.string().nullable().optional()
+});
+
+const deleteExpenseResponseSchema = z.object({
+  message: z.string(),
+  expense_id: z.number(),
+  action: z.string()
 });
 
 const expenseListSchema = z.object({
@@ -136,6 +163,7 @@ export type ExpenseSummary = z.infer<typeof expenseSummarySchema>;
 export type ExpenseDigestPreference = z.infer<typeof digestPreferenceSchema>;
 export type ExpenseDigestSelection = "off" | "daily" | "weekly";
 export type UploadReceiptResponse = z.infer<typeof uploadReceiptResponseSchema>;
+export type ExpenseUpdate = z.infer<typeof expenseUpdateSchema>;
 
 export type ExpenseDraft = {
   amount: number | null;
@@ -266,6 +294,33 @@ export const expensesApi = {
 
   getExpenses() {
     return apiRequest("/expenses/?include_total=true&limit=30", {}, expenseListSchema);
+  },
+
+  getExpense(id: number) {
+    return apiRequest(`/expenses/${id}`, {}, expenseSchema);
+  },
+
+  updateExpense(id: number, patch: ExpenseUpdate) {
+    return apiRequest(`/expenses/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(patch)
+    }, expenseSchema);
+  },
+
+  deleteExpense(id: number) {
+    return apiRequest(`/expenses/${id}`, { method: "DELETE" }, deleteExpenseResponseSchema);
+  },
+
+  submitForReview(id: number) {
+    return apiRequest(`/expenses/${id}/review`, { method: "POST" }, expenseSchema);
+  },
+
+  acceptReview(id: number) {
+    return apiRequest(`/expenses/${id}/accept-review`, { method: "POST" }, expenseSchema);
+  },
+
+  rejectReview(id: number) {
+    return apiRequest(`/expenses/${id}/reject-review`, { method: "POST" }, expenseSchema);
   },
 
   getSummary() {
