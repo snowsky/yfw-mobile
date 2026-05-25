@@ -195,18 +195,22 @@ export default function CaptureScreen() {
     setReceiptPhase("uploading");
     setReceiptError("");
     try {
-      const today = new Date().toISOString().split("T")[0];
-      const expense = await expensesApi.createExpense({
-        amount: null,
-        currency: "USD",
-        expense_date: today,
-        category: "General",
-        notes: "Uploaded via mobile receipt scan — pending OCR review.",
-      });
+      let expenseId = receiptExpenseId;
+      if (expenseId == null) {
+        const today = new Date().toISOString().split("T")[0];
+        const expense = await expensesApi.createExpense({
+          amount: null,
+          currency: "USD",
+          expense_date: today,
+          category: "General",
+          notes: "Uploaded via mobile receipt scan — pending OCR review.",
+        });
+        expenseId = expense.id;
+        setReceiptExpenseId(expenseId);
+      }
 
-      await expensesApi.uploadReceipt(expense.id, receiptUri, receiptFileName, receiptMime);
+      await expensesApi.uploadReceipt(expenseId, receiptUri, receiptFileName, receiptMime);
       queryClient.invalidateQueries({ queryKey: ["expenses"] });
-      setReceiptExpenseId(expense.id);
       setReceiptPhase("done");
     } catch (e) {
       setReceiptError(e instanceof Error ? e.message : "Upload failed.");
