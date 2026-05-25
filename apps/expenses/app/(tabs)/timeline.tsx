@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ScrollView, StyleSheet, Text, View, Pressable } from "react-native";
+import { RefreshControl, ScrollView, StyleSheet, Text, View, Pressable } from "react-native";
 import { useQuery } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -73,7 +73,18 @@ export default function TimelineScreen() {
 
   return (
     <SafeAreaView edges={["top"]} style={styles.safeArea}>
-      <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+      <ScrollView
+        style={styles.screen}
+        contentContainerStyle={styles.content}
+        refreshControl={
+          <RefreshControl
+            refreshing={query.isRefetching}
+            onRefresh={() => query.refetch()}
+            tintColor="#059669"
+            colors={["#059669"]}
+          />
+        }
+      >
         <View style={styles.headerCard}>
           <View style={styles.headerTopRow}>
             <View style={styles.headerCopy}>
