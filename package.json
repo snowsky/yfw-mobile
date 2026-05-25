@@ -16,7 +16,8 @@
     "web:expenses": "npm run web --workspace @yfw-mobile/expenses",
     "web:expenses:bound": "EXPO_PUBLIC_API_URL=http://localhost:8000/api/v1 EXPO_PUBLIC_EXPENSE_APP_ID=yfw-expense-demo npm run web --workspace @yfw-mobile/expenses",
     "android": "expo run:android",
-    "ios": "expo run:ios"
+    "ios": "expo run:ios",
+    "typecheck": "npm run typecheck --workspace @yfw-mobile/expenses"
   },
   "dependencies": {
     "expo": "~54.0.33",
