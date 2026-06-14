@@ -15,12 +15,35 @@ import { Audio } from "expo-av";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
+import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming } from "react-native-reanimated";
 
 import { expensesApi, type ExpenseDraft, type ParsedVoiceExpense } from "../../src/lib/api";
 import { useAuth } from "../../src/providers/AuthProvider";
 
 type VoicePhase = "idle" | "recording" | "transcribing" | "parsed" | "saving" | "saved";
 type ReceiptPhase = "idle" | "previewing" | "uploading" | "done";
+
+function RecordingPulse() {
+  const scale = useSharedValue(1);
+  const opacity = useSharedValue(0.7);
+
+  useEffect(() => {
+    scale.value = withRepeat(withTiming(2.4, { duration: 1200 }), -1, false);
+    opacity.value = withRepeat(withTiming(0, { duration: 1200 }), -1, false);
+  }, [scale, opacity]);
+
+  const ringStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+    opacity: opacity.value,
+  }));
+
+  return (
+    <View style={styles.pulseWrap} pointerEvents="none" importantForAccessibility="no-hide-descendants">
+      <Animated.View style={[styles.pulseRing, ringStyle]} />
+      <View style={styles.pulseDot} />
+    </View>
+  );
+}
 
 function SegmentedControl({
   value,
@@ -426,6 +449,14 @@ export default function CaptureScreen() {
               )}
             </Pressable>
 
+            {voicePhase === "recording" && (
+              <View style={styles.recordingRow}>
+                <RecordingPulse />
+                <Text style={styles.recordingTimer}>{fmtTime(recordingSeconds)}</Text>
+                <Text style={styles.recordingHint}>Listening…</Text>
+              </View>
+            )}
+
             <TextInput
               multiline
               numberOfLines={3}
@@ -541,6 +572,12 @@ const styles = StyleSheet.create({
   segmentTextActive: { color: "#ffffff" },
   segmentTextInactive: { color: "#64748b" },
   recordBtnActive: { backgroundColor: "#ef4444" },
+  recordingRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  recordingTimer: { fontFamily: "Outfit_700Bold", fontSize: 18, color: "#ef4444" },
+  recordingHint: { fontFamily: "Outfit_500Medium", fontSize: 13, color: "#94a3b8" },
+  pulseWrap: { width: 16, height: 16, alignItems: "center", justifyContent: "center" },
+  pulseRing: { position: "absolute", width: 16, height: 16, borderRadius: 8, backgroundColor: "#ef4444" },
+  pulseDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#ef4444" },
   buttonDisabled: { opacity: 0.55 },
 
   // Section cards
