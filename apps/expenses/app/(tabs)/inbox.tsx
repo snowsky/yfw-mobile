@@ -17,6 +17,10 @@ function getInboxState(expense: { analysis_status?: string | null; review_status
     return { label: "Processing", icon: "clock", tone: "#0284c7", bg: "#eff6ff" };
   }
 
+  if (expense.review_status === "diff_found") {
+    return { label: "Review changes", icon: "edit-3", tone: "#d97706", bg: "#fffbeb" };
+  }
+
   return { label: "Ready to review", icon: "check-circle", tone: "#059669", bg: "#ecfdf5" };
 }
 
@@ -78,6 +82,7 @@ export default function InboxScreen() {
 
   const attentionCount = items.filter((expense) => getInboxState(expense).label === "Needs attention").length;
   const processingCount = items.filter((expense) => getInboxState(expense).label === "Processing").length;
+  const reviewCount = items.filter((expense) => getInboxState(expense).label === "Review changes").length;
 
   return (
     <SafeAreaView edges={["top"]} style={styles.safeArea}>
@@ -122,6 +127,10 @@ export default function InboxScreen() {
               <Text style={styles.summaryValue}>{processingCount}</Text>
               <Text style={styles.summaryLabel}>Processing</Text>
             </View>
+            <View style={styles.queueSummaryItem}>
+              <Text style={styles.summaryValue}>{reviewCount}</Text>
+              <Text style={styles.summaryLabel}>To review</Text>
+            </View>
           </View>
         </View>
 
@@ -147,7 +156,7 @@ export default function InboxScreen() {
         ) : (
           items.map((item) => {
             const state = getInboxState(item);
-            const isPendingReview = item.review_status === "pending";
+            const isReviewable = item.review_status === "diff_found";
             const isActing = pendingId === item.id;
 
             return (
@@ -180,7 +189,7 @@ export default function InboxScreen() {
                   Attachments: {item.attachments_count ?? 0} • Analysis: {item.analysis_status ?? "not_started"}
                 </Text>
 
-                {isPendingReview ? (
+                {isReviewable ? (
                   <View style={styles.actionRow}>
                     <Pressable
                       accessibilityRole="button"
