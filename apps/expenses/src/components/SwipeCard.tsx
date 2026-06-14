@@ -8,10 +8,10 @@ import Animated, {
   useAnimatedStyle,
   withSpring,
   withTiming,
-  runOnJS,
   interpolate,
   Extrapolation,
 } from "react-native-reanimated";
+import { scheduleOnRN } from "react-native-worklets";
 
 const { width: SCREEN_W } = Dimensions.get("window");
 const SWIPE_THRESHOLD = SCREEN_W * 0.35;
@@ -65,7 +65,7 @@ export const SwipeCard = forwardRef<SwipeCardHandle, SwipeCardProps>(function Sw
   const animateOut = (direction: 1 | -1) => {
     const decision: "approve" | "reject" = direction > 0 ? "approve" : "reject";
     translateX.value = withTiming(direction * SCREEN_W * 1.5, { duration: 250 }, (finished) => {
-      if (finished) runOnJS(onSwipeComplete)(decision);
+      if (finished) scheduleOnRN(onSwipeComplete, decision);
     });
   };
 
@@ -80,7 +80,7 @@ export const SwipeCard = forwardRef<SwipeCardHandle, SwipeCardProps>(function Sw
     })
     .onEnd((e) => {
       if (Math.abs(translateX.value) > SWIPE_THRESHOLD || Math.abs(e.velocityX) > 800) {
-        runOnJS(animateOut)(translateX.value > 0 ? 1 : -1);
+        scheduleOnRN(animateOut, translateX.value > 0 ? 1 : -1);
       } else {
         translateX.value = withSpring(0);
         translateY.value = withSpring(0);
@@ -90,7 +90,7 @@ export const SwipeCard = forwardRef<SwipeCardHandle, SwipeCardProps>(function Sw
   const tap = Gesture.Tap()
     .maxDistance(10)
     .onEnd(() => {
-      runOnJS(onOpenDetail)();
+      scheduleOnRN(onOpenDetail);
     });
 
   const gesture = Gesture.Exclusive(pan, tap);
