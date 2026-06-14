@@ -14,6 +14,8 @@ import { Feather } from "@expo/vector-icons";
 import { Audio } from "expo-av";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
+import * as Haptics from "expo-haptics";
+import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming } from "react-native-reanimated";
 
 import { expensesApi, type ExpenseDraft, type ParsedVoiceExpense } from "../../src/lib/api";
 import { useAuth } from "../../src/providers/AuthProvider";
@@ -21,9 +23,70 @@ import { useAuth } from "../../src/providers/AuthProvider";
 type VoicePhase = "idle" | "recording" | "transcribing" | "parsed" | "saving" | "saved";
 type ReceiptPhase = "idle" | "previewing" | "uploading" | "done";
 
+function RecordingPulse() {
+  const scale = useSharedValue(1);
+  const opacity = useSharedValue(0.7);
+
+  useEffect(() => {
+    scale.value = withRepeat(withTiming(2.4, { duration: 1200 }), -1, false);
+    opacity.value = withRepeat(withTiming(0, { duration: 1200 }), -1, false);
+  }, [scale, opacity]);
+
+  const ringStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+    opacity: opacity.value,
+  }));
+
+  return (
+    <View style={styles.pulseWrap} pointerEvents="none" importantForAccessibility="no-hide-descendants">
+      <Animated.View style={[styles.pulseRing, ringStyle]} />
+      <View style={styles.pulseDot} />
+    </View>
+  );
+}
+
+function SegmentedControl({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: "receipt" | "voice";
+  onChange: (next: "receipt" | "voice") => void;
+  disabled?: boolean;
+}) {
+  const segments: { key: "receipt" | "voice"; label: string; icon: keyof typeof Feather.glyphMap }[] = [
+    { key: "receipt", label: "Receipt", icon: "camera" },
+    { key: "voice", label: "Voice", icon: "mic" },
+  ];
+  return (
+    <View style={[styles.segment, disabled && styles.buttonDisabled]}>
+      {segments.map((seg) => {
+        const active = seg.key === value;
+        return (
+          <Pressable
+            key={seg.key}
+            accessibilityRole="button"
+            accessibilityState={{ selected: active, disabled: Boolean(disabled) }}
+            accessibilityLabel={`${seg.label} capture`}
+            disabled={disabled}
+            onPress={() => onChange(seg.key)}
+            style={[styles.segmentItem, active && styles.segmentItemActive]}
+          >
+            <Feather name={seg.icon} size={16} color={active ? "#ffffff" : "#64748b"} />
+            <Text style={[styles.segmentText, active ? styles.segmentTextActive : styles.segmentTextInactive]}>
+              {seg.label}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
 export default function CaptureScreen() {
   const { user, logout } = useAuth();
   const queryClient = useQueryClient();
+  const [mode, setMode] = useState<"receipt" | "voice">("receipt");
 
   // ── Voice state ──────────────────────────────────────────────────────────
   const [voicePhase, setVoicePhase] = useState<VoicePhase>("idle");
@@ -33,6 +96,7 @@ export default function CaptureScreen() {
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const recordingRef = useRef<Audio.Recording | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ── Receipt state ────────────────────────────────────────────────────────
   const [receiptPhase, setReceiptPhase] = useState<ReceiptPhase>("idle");
@@ -48,6 +112,21 @@ export default function CaptureScreen() {
       recordingRef.current?.stopAndUnloadAsync().catch(() => undefined);
     };
   }, []);
+
+  useEffect(() => {
+    if (voicePhase === "saved" || receiptPhase === "done") {
+      resetTimerRef.current = setTimeout(() => {
+        if (voicePhase === "saved") resetVoice();
+        if (receiptPhase === "done") resetReceipt();
+      }, 2500);
+      return () => {
+        if (resetTimerRef.current) {
+          clearTimeout(resetTimerRef.current);
+          resetTimerRef.current = null;
+        }
+      };
+    }
+  }, [voicePhase, receiptPhase]);
 
   // ── Voice: start / stop recording ───────────────────────────────────────
 
@@ -75,6 +154,7 @@ export default function CaptureScreen() {
       );
       recordingRef.current = recording;
       setVoicePhase("recording");
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
       setRecordingSeconds(0);
       timerRef.current = setInterval(() => setRecordingSeconds((s) => s + 1), 1000);
     } catch (e) {
@@ -83,6 +163,7 @@ export default function CaptureScreen() {
   }
 
   async function stopRecording() {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
@@ -147,6 +228,7 @@ export default function CaptureScreen() {
       await expensesApi.createExpense(draft);
       queryClient.invalidateQueries({ queryKey: ["expenses"] });
       setVoicePhase("saved");
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     } catch (e) {
       setVoiceError(e instanceof Error ? e.message : "Failed to save expense.");
       setVoicePhase("parsed");
@@ -164,6 +246,7 @@ export default function CaptureScreen() {
   // ── Receipt: capture photo ───────────────────────────────────────────────
 
   async function handlePickReceipt() {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     setReceiptError("");
     try {
       const ImagePicker = await import("expo-image-picker");
@@ -212,6 +295,7 @@ export default function CaptureScreen() {
       await expensesApi.uploadReceipt(expenseId, receiptUri, receiptFileName, receiptMime);
       queryClient.invalidateQueries({ queryKey: ["expenses"] });
       setReceiptPhase("done");
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     } catch (e) {
       setReceiptError(e instanceof Error ? e.message : "Upload failed.");
       setReceiptPhase("previewing");
@@ -245,13 +329,14 @@ export default function CaptureScreen() {
   // ── Render ───────────────────────────────────────────────────────────────
 
   const isVoiceBusy = voicePhase === "transcribing" || voicePhase === "saving";
-  const canScanReceipt = receiptPhase === "idle" || receiptPhase === "done";
+  const isReceiptBusy = receiptPhase === "uploading";
+  const switchLocked = voicePhase === "recording" || isVoiceBusy || isReceiptBusy;
 
   return (
     <SafeAreaView edges={["top"]} style={styles.safeArea}>
       <ScrollView style={styles.screen} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
 
-        {/* ── Hero card ── */}
+        {/* ── Slim hero ── */}
         <View style={styles.heroCard}>
           <LinearGradient
             colors={["#10b981", "#059669"]}
@@ -259,216 +344,211 @@ export default function CaptureScreen() {
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
           />
-          <Text style={styles.heroTitle}>Capture in seconds</Text>
-          <Text style={styles.heroBody}>
-            Speak an expense or snap a receipt — we handle the rest.
+          <View style={styles.heroTopRow}>
+            <Text style={styles.heroTitle} numberOfLines={1}>Capture in seconds</Text>
+            <Pressable onPress={logout} hitSlop={10} accessibilityRole="button" accessibilityLabel="Sign out">
+              <Text style={styles.heroSignOut}>Sign out</Text>
+            </Pressable>
+          </View>
+          <Text style={styles.heroBody} numberOfLines={1}>
+            {user?.email ?? "Speak an expense or snap a receipt."}
           </Text>
-
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={receiptPhase === "done" ? "Scan another receipt" : "Scan receipt"}
-            style={[styles.heroAction, styles.heroActionPrimary, receiptPhase === "uploading" && styles.buttonDisabled]}
-            onPress={canScanReceipt ? handlePickReceipt : resetReceipt}
-            disabled={receiptPhase === "uploading"}
-          >
-            {receiptPhase === "uploading" ? (
-              <ActivityIndicator color="#064e3b" />
-            ) : (
-              <>
-                <Feather name={receiptPhase === "done" ? "check-circle" : "camera"} size={18} color="#064e3b" />
-                <Text style={styles.heroActionPrimaryText}>
-                  {receiptPhase === "done" ? "Receipt saved — scan another" : "Scan receipt"}
-                </Text>
-              </>
-            )}
-          </Pressable>
-
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={voicePhase === "recording" ? "Stop recording" : "Record voice expense"}
-            style={[
-              styles.heroAction,
-              voicePhase === "recording" ? styles.heroActionRecording : styles.heroActionSecondary,
-              isVoiceBusy && styles.buttonDisabled,
-            ]}
-            onPress={voicePhase === "saved" ? resetVoice : handleToggleRecording}
-            disabled={isVoiceBusy}
-          >
-            {isVoiceBusy ? (
-              <ActivityIndicator color="#ffffff" />
-            ) : (
-              <>
-                <Feather
-                  name={voicePhase === "recording" ? "square" : voicePhase === "saved" ? "check-circle" : "mic"}
-                  size={18}
-                  color="#ffffff"
-                />
-                <Text style={styles.heroActionSecondaryText}>
-                  {voicePhase === "recording"
-                    ? `Stop recording  ${fmtTime(recordingSeconds)}`
-                    : voicePhase === "saved"
-                    ? "Saved — tap to record another"
-                    : "Record voice expense"}
-                </Text>
-              </>
-            )}
-          </Pressable>
         </View>
 
-        {/* ── Voice section ── */}
-        <View style={styles.sectionCard}>
-          <View style={styles.sectionHeader}>
-            <View style={styles.sectionTitleRow}>
-              <Feather name="mic" size={16} color="#059669" />
-              <Text style={styles.sectionTitle}>Voice expense</Text>
+        {/* ── Mode switch ── */}
+        <SegmentedControl value={mode} onChange={setMode} disabled={switchLocked} />
+
+        {/* ── Receipt panel ── */}
+        {mode === "receipt" && (
+          <View style={styles.sectionCard}>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionTitleRow}>
+                <Feather name="camera" size={16} color="#059669" />
+                <Text style={styles.sectionTitle}>Receipt scan</Text>
+              </View>
+              <Text style={styles.sectionDescription}>
+                Snap a photo — a draft expense is created and sent for OCR review.
+              </Text>
             </View>
-            <Text style={styles.sectionDescription}>
-              Record with the button above, or type a description and tap Parse.
-            </Text>
-          </View>
 
-          <TextInput
-            multiline
-            numberOfLines={3}
-            value={transcript}
-            onChangeText={setTranscript}
-            placeholder='e.g. "Spent $18 on lunch at Freshii today"'
-            placeholderTextColor="#94a3b8"
-            style={styles.textarea}
-            editable={voicePhase !== "recording" && voicePhase !== "transcribing"}
-          />
+            {receiptUri && receiptPhase !== "idle" && (
+              <Image source={{ uri: receiptUri }} style={styles.receiptPreview} resizeMode="cover" />
+            )}
 
-          {voicePhase !== "saved" && voicePhase !== "recording" && (
-            <View style={styles.inlineRow}>
+            {receiptError ? <Text style={styles.errorText}>{receiptError}</Text> : null}
+
+            {(receiptPhase === "idle" || receiptPhase === "done") && (
               <Pressable
                 accessibilityRole="button"
-                style={[
-                  styles.inlineBtn,
-                  styles.outlineBtn,
-                  (isVoiceBusy || !transcript.trim()) && styles.buttonDisabled,
-                ]}
-                onPress={() => parseDraft()}
-                disabled={isVoiceBusy || !transcript.trim()}
+                accessibilityLabel={receiptPhase === "done" ? "Scan another receipt" : "Scan receipt"}
+                style={[styles.inlineBtn, styles.primaryBtn]}
+                onPress={handlePickReceipt}
               >
-                <Text style={styles.outlineBtnText}>
-                  {voicePhase === "transcribing" ? "Parsing…" : "Parse draft"}
+                <Feather name="camera" size={16} color="#ffffff" />
+                <Text style={styles.primaryBtnText}>
+                  {receiptPhase === "done" ? "Scan another receipt" : "Scan receipt"}
                 </Text>
               </Pressable>
-            </View>
-          )}
+            )}
 
-          {voiceError ? <Text style={styles.errorText}>{voiceError}</Text> : null}
+            {receiptPhase === "previewing" && (
+              <View style={styles.inlineRow}>
+                <Pressable accessibilityRole="button" style={[styles.inlineBtn, styles.primaryBtn]} onPress={handleUploadReceipt}>
+                  <Feather name="upload" size={15} color="#ffffff" />
+                  <Text style={styles.primaryBtnText}>Upload & save</Text>
+                </Pressable>
+                <Pressable accessibilityRole="button" style={[styles.inlineBtn, styles.outlineBtn]} onPress={resetReceipt}>
+                  <Text style={styles.outlineBtnText}>Discard</Text>
+                </Pressable>
+              </View>
+            )}
 
-          {/* Draft preview */}
-          {voiceDraft && voicePhase !== "idle" && voicePhase !== "saved" && (
-            <View style={styles.draftCard}>
-              <View style={styles.draftRow}>
-                <Text style={styles.draftAmount}>
-                  {voiceDraft.amount != null
-                    ? `${voiceDraft.currency} ${voiceDraft.amount.toFixed(2)}`
-                    : "Amount unknown"}
-                </Text>
-                <Text style={[styles.draftConfidence, { color: confidenceColor(voiceDraft.confidence) }]}>
-                  {confidenceLabel(voiceDraft.confidence)}
+            {receiptPhase === "uploading" && (
+              <View style={styles.uploadingRow}>
+                <ActivityIndicator color="#059669" />
+                <Text style={styles.uploadingText}>Uploading receipt…</Text>
+              </View>
+            )}
+
+            {receiptPhase === "done" && (
+              <View style={styles.successBanner}>
+                <Feather name="check-circle" size={18} color="#059669" />
+                <Text style={styles.successText}>
+                  Receipt uploaded — expense #{receiptExpenseId} queued for OCR
                 </Text>
               </View>
-              <Text style={styles.draftMeta}>
-                {[voiceDraft.category, voiceDraft.vendor, voiceDraft.expense_date]
-                  .filter(Boolean)
-                  .join("  ·  ")}
-              </Text>
-              <Text style={styles.draftParser}>
-                {voiceDraft.parser_used.toUpperCase()} · {Math.round(voiceDraft.confidence * 100)}%
-              </Text>
-
-              <Pressable
-                accessibilityRole="button"
-                style={[styles.inlineBtn, styles.primaryBtn, voicePhase === "saving" && styles.buttonDisabled]}
-                onPress={saveVoiceExpense}
-                disabled={voicePhase === "saving"}
-              >
-                {voicePhase === "saving" ? (
-                  <ActivityIndicator color="#ffffff" size="small" />
-                ) : (
-                  <Text style={styles.primaryBtnText}>Save expense</Text>
-                )}
-              </Pressable>
-            </View>
-          )}
-
-          {voicePhase === "saved" && (
-            <View style={styles.successBanner}>
-              <Feather name="check-circle" size={18} color="#059669" />
-              <Text style={styles.successText}>Expense saved — visible in Timeline</Text>
-            </View>
-          )}
-        </View>
-
-        {/* ── Receipt section ── */}
-        <View style={styles.sectionCard}>
-          <View style={styles.sectionHeader}>
-            <View style={styles.sectionTitleRow}>
-              <Feather name="camera" size={16} color="#059669" />
-              <Text style={styles.sectionTitle}>Receipt scan</Text>
-            </View>
-            <Text style={styles.sectionDescription}>
-              Snap a photo — a draft expense is created and sent for OCR review.
-            </Text>
+            )}
           </View>
+        )}
 
-          {receiptUri && receiptPhase !== "idle" && (
-            <Image source={{ uri: receiptUri }} style={styles.receiptPreview} resizeMode="cover" />
-          )}
-
-          {receiptError ? <Text style={styles.errorText}>{receiptError}</Text> : null}
-
-          {receiptPhase === "previewing" && (
-            <View style={styles.inlineRow}>
-              <Pressable accessibilityRole="button" style={[styles.inlineBtn, styles.primaryBtn]} onPress={handleUploadReceipt}>
-                <Feather name="upload" size={15} color="#ffffff" />
-                <Text style={styles.primaryBtnText}>Upload & save</Text>
-              </Pressable>
-              <Pressable accessibilityRole="button" style={[styles.inlineBtn, styles.outlineBtn]} onPress={resetReceipt}>
-                <Text style={styles.outlineBtnText}>Discard</Text>
-              </Pressable>
-            </View>
-          )}
-
-          {receiptPhase === "uploading" && (
-            <View style={styles.uploadingRow}>
-              <ActivityIndicator color="#059669" />
-              <Text style={styles.uploadingText}>Uploading receipt…</Text>
-            </View>
-          )}
-
-          {receiptPhase === "done" && (
-            <View style={styles.successBanner}>
-              <Feather name="check-circle" size={18} color="#059669" />
-              <Text style={styles.successText}>
-                Receipt uploaded — expense #{receiptExpenseId} queued for OCR
+        {/* ── Voice panel ── */}
+        {mode === "voice" && (
+          <View style={styles.sectionCard}>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionTitleRow}>
+                <Feather name="mic" size={16} color="#059669" />
+                <Text style={styles.sectionTitle}>Voice expense</Text>
+              </View>
+              <Text style={styles.sectionDescription}>
+                Tap record, or type a description and tap Parse.
               </Text>
             </View>
-          )}
 
-          {receiptPhase === "idle" && (
             <Pressable
               accessibilityRole="button"
-              style={[styles.inlineBtn, styles.outlineBtn, { alignSelf: "flex-start" }]}
-              onPress={handlePickReceipt}
+              accessibilityLabel={voicePhase === "recording" ? "Stop recording" : "Record voice expense"}
+              style={[
+                styles.inlineBtn,
+                voicePhase === "recording" ? styles.recordBtnActive : styles.primaryBtn,
+                isVoiceBusy && styles.buttonDisabled,
+              ]}
+              onPress={voicePhase === "saved" ? resetVoice : handleToggleRecording}
+              disabled={isVoiceBusy}
             >
-              <Feather name="camera" size={15} color="#0f172a" />
-              <Text style={styles.outlineBtnText}>Open camera</Text>
+              {isVoiceBusy ? (
+                <ActivityIndicator color="#ffffff" />
+              ) : (
+                <>
+                  <Feather
+                    name={voicePhase === "recording" ? "square" : voicePhase === "saved" ? "check-circle" : "mic"}
+                    size={16}
+                    color="#ffffff"
+                  />
+                  <Text style={styles.primaryBtnText}>
+                    {voicePhase === "recording"
+                      ? `Stop recording  ${fmtTime(recordingSeconds)}`
+                      : voicePhase === "saved"
+                      ? "Record another"
+                      : "Record voice expense"}
+                  </Text>
+                </>
+              )}
             </Pressable>
-          )}
-        </View>
 
-        {/* ── Session footer ── */}
-        <View style={styles.sessionRow}>
-          <Text style={styles.sessionLabel}>{user?.email ?? "Not signed in"}</Text>
-          <Pressable onPress={logout} hitSlop={10}>
-            <Text style={styles.signOut}>Sign out</Text>
-          </Pressable>
-        </View>
+            {voicePhase === "recording" && (
+              <View style={styles.recordingRow}>
+                <RecordingPulse />
+                <Text style={styles.recordingTimer}>{fmtTime(recordingSeconds)}</Text>
+                <Text style={styles.recordingHint}>Listening…</Text>
+              </View>
+            )}
+
+            <TextInput
+              multiline
+              numberOfLines={3}
+              value={transcript}
+              onChangeText={setTranscript}
+              placeholder='e.g. "Spent $18 on lunch at Freshii today"'
+              placeholderTextColor="#94a3b8"
+              style={styles.textarea}
+              editable={voicePhase !== "recording" && voicePhase !== "transcribing"}
+            />
+
+            {voicePhase !== "saved" && voicePhase !== "recording" && (
+              <View style={styles.inlineRow}>
+                <Pressable
+                  accessibilityRole="button"
+                  style={[
+                    styles.inlineBtn,
+                    styles.outlineBtn,
+                    (isVoiceBusy || !transcript.trim()) && styles.buttonDisabled,
+                  ]}
+                  onPress={() => parseDraft()}
+                  disabled={isVoiceBusy || !transcript.trim()}
+                >
+                  <Text style={styles.outlineBtnText}>
+                    {voicePhase === "transcribing" ? "Parsing…" : "Parse draft"}
+                  </Text>
+                </Pressable>
+              </View>
+            )}
+
+            {voiceError ? <Text style={styles.errorText}>{voiceError}</Text> : null}
+
+            {voiceDraft && voicePhase !== "idle" && voicePhase !== "saved" && (
+              <View style={styles.draftCard}>
+                <View style={styles.draftRow}>
+                  <Text style={styles.draftAmount}>
+                    {voiceDraft.amount != null
+                      ? `${voiceDraft.currency} ${voiceDraft.amount.toFixed(2)}`
+                      : "Amount unknown"}
+                  </Text>
+                  <Text style={[styles.draftConfidence, { color: confidenceColor(voiceDraft.confidence) }]}>
+                    {confidenceLabel(voiceDraft.confidence)}
+                  </Text>
+                </View>
+                <Text style={styles.draftMeta}>
+                  {[voiceDraft.category, voiceDraft.vendor, voiceDraft.expense_date]
+                    .filter(Boolean)
+                    .join("  ·  ")}
+                </Text>
+                <Text style={styles.draftParser}>
+                  {voiceDraft.parser_used.toUpperCase()} · {Math.round(voiceDraft.confidence * 100)}%
+                </Text>
+
+                <Pressable
+                  accessibilityRole="button"
+                  style={[styles.inlineBtn, styles.primaryBtn, voicePhase === "saving" && styles.buttonDisabled]}
+                  onPress={saveVoiceExpense}
+                  disabled={voicePhase === "saving"}
+                >
+                  {voicePhase === "saving" ? (
+                    <ActivityIndicator color="#ffffff" size="small" />
+                  ) : (
+                    <Text style={styles.primaryBtnText}>Save expense</Text>
+                  )}
+                </Pressable>
+              </View>
+            )}
+
+            {voicePhase === "saved" && (
+              <View style={styles.successBanner}>
+                <Feather name="check-circle" size={18} color="#059669" />
+                <Text style={styles.successText}>Expense saved — visible in Timeline</Text>
+              </View>
+            )}
+          </View>
+        )}
 
       </ScrollView>
     </SafeAreaView>
@@ -481,10 +561,10 @@ const styles = StyleSheet.create({
   content: { padding: 16, gap: 16, paddingBottom: 40 },
 
   // Hero card
-  heroCard: { 
-    borderRadius: 18, 
-    padding: 20, 
-    gap: 12, 
+  heroCard: {
+    borderRadius: 18,
+    padding: 16,
+    gap: 8,
     backgroundColor: "#10b981",
     shadowColor: "#cbd5e1",
     shadowOffset: { width: 0, height: 4 },
@@ -494,17 +574,26 @@ const styles = StyleSheet.create({
     position: "relative",
     overflow: "hidden",
   },
-  heroTitle: { fontFamily: "Outfit_700Bold", fontSize: 28, color: "#ffffff" },
-  heroBody: { fontFamily: "Outfit_400Regular", fontSize: 15, lineHeight: 22, color: "#ecfdf5" },
-  heroAction: {
-    minHeight: 56, borderRadius: 16, paddingHorizontal: 16,
-    alignItems: "center", flexDirection: "row", gap: 10,
+  heroTitle: { fontFamily: "Outfit_700Bold", fontSize: 22, color: "#ffffff", flex: 1 },
+  heroBody: { fontFamily: "Outfit_400Regular", fontSize: 13, lineHeight: 18, color: "#ecfdf5" },
+  heroTopRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 12 },
+  heroSignOut: { fontFamily: "Outfit_700Bold", fontSize: 13, color: "#ffffff" },
+  segment: { flexDirection: "row", backgroundColor: "#eef2f6", borderRadius: 14, padding: 4, gap: 4 },
+  segmentItem: {
+    flex: 1, minHeight: 44, borderRadius: 11,
+    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
   },
-  heroActionPrimary: { backgroundColor: "rgba(255,255,255,0.96)" },
-  heroActionSecondary: { backgroundColor: "rgba(255,255,255,0.14)" },
-  heroActionRecording: { backgroundColor: "#ef4444" },
-  heroActionPrimaryText: { fontFamily: "Outfit_700Bold", fontSize: 16, color: "#064e3b" },
-  heroActionSecondaryText: { fontFamily: "Outfit_600SemiBold", fontSize: 16, color: "#ffffff", flexShrink: 1 },
+  segmentItemActive: { backgroundColor: "#059669" },
+  segmentText: { fontFamily: "Outfit_600SemiBold", fontSize: 14 },
+  segmentTextActive: { color: "#ffffff" },
+  segmentTextInactive: { color: "#64748b" },
+  recordBtnActive: { backgroundColor: "#ef4444" },
+  recordingRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  recordingTimer: { fontFamily: "Outfit_700Bold", fontSize: 18, color: "#ef4444" },
+  recordingHint: { fontFamily: "Outfit_500Medium", fontSize: 13, color: "#94a3b8" },
+  pulseWrap: { width: 16, height: 16, alignItems: "center", justifyContent: "center" },
+  pulseRing: { position: "absolute", width: 16, height: 16, borderRadius: 8, backgroundColor: "#ef4444" },
+  pulseDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#ef4444" },
   buttonDisabled: { opacity: 0.55 },
 
   // Section cards
@@ -567,12 +656,4 @@ const styles = StyleSheet.create({
   uploadingRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   uploadingText: { fontFamily: "Outfit_500Medium", fontSize: 14, color: "#475569" },
   errorText: { fontFamily: "Outfit_400Regular", fontSize: 13, color: "#ef4444", lineHeight: 18 },
-
-  // Session footer
-  sessionRow: {
-    flexDirection: "row", justifyContent: "space-between", alignItems: "center",
-    paddingHorizontal: 4,
-  },
-  sessionLabel: { fontFamily: "Outfit_400Regular", fontSize: 13, color: "#94a3b8" },
-  signOut: { fontFamily: "Outfit_700Bold", color: "#059669", fontSize: 14 },
 });
