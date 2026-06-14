@@ -1,12 +1,22 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet, Text, View, Pressable } from "react-native";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 
 import { expensesApi } from "../../src/lib/api";
 import { useAuth } from "../../src/providers/AuthProvider";
+import { SwipeableRow } from "../../src/components/SwipeableRow";
+import { UndoToast } from "../../src/components/UndoToast";
+
+// The list query yields the *input* shape of the expense-list schema (e.g.
+// `currency` is optional because the zod schema defaults it), which is wider
+// than the exported `ExpenseListItem` output type. Derive the row item type
+// from the query result so state/handlers stay type-safe without `any`.
+type TimelineExpense = NonNullable<
+  Awaited<ReturnType<typeof expensesApi.getExpenses>>["expenses"]
+>[number];
 
 const filters = [
   { key: "all", label: "All" },
@@ -40,6 +50,47 @@ export default function TimelineScreen() {
     queryFn: expensesApi.getExpenses,
     enabled: Boolean(accessToken),
   });
+
+  const queryClient = useQueryClient();
+  const [pendingDelete, setPendingDelete] = useState<TimelineExpense | null>(null);
+  const deleteTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => expensesApi.deleteExpense(id),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ["expenses"] }),
+  });
+
+  const commitDelete = (item: TimelineExpense) => {
+    deleteMutation.mutate(item.id);
+  };
+
+  const requestDelete = (item: TimelineExpense) => {
+    // If a delete is already pending, commit it now before starting a new one.
+    if (pendingDelete && deleteTimer.current) {
+      clearTimeout(deleteTimer.current);
+      commitDelete(pendingDelete);
+    }
+    setPendingDelete(item);
+    deleteTimer.current = setTimeout(() => {
+      commitDelete(item);
+      deleteTimer.current = null;
+      setPendingDelete(null);
+    }, 4000);
+  };
+
+  const undoDelete = () => {
+    if (deleteTimer.current) {
+      clearTimeout(deleteTimer.current);
+      deleteTimer.current = null;
+    }
+    setPendingDelete(null);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (deleteTimer.current) clearTimeout(deleteTimer.current);
+    };
+  }, []);
 
   const expenses = useMemo(() => {
     const all = query.data?.expenses ?? [];
@@ -155,29 +206,45 @@ export default function TimelineScreen() {
             <Text style={styles.emptyText}>Nothing matches this time window. Try another filter or capture a new expense.</Text>
           </View>
         ) : (
-          expenses.map((item) => (
-            <Pressable
+          expenses
+            .filter((item) => item.id !== pendingDelete?.id)
+            .map((item) => (
+            <SwipeableRow
               key={item.id}
-              accessibilityRole="button"
-              accessibilityLabel={`Open expense ${item.vendor ?? item.category}`}
-              onPress={() => router.push(`/expense/${item.id}` as never)}
-              style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+              rightAction={{
+                label: "Delete",
+                icon: "trash-2",
+                color: "#dc2626",
+                onTrigger: () => requestDelete(item),
+              }}
             >
-              <View style={styles.cardMain}>
-                <Text style={styles.amount} numberOfLines={1} adjustsFontSizeToFit>
-                  {formatMoney(item.amount, item.currency)}
-                </Text>
-                <Text style={styles.vendor} numberOfLines={1}>{item.vendor ?? "Unknown vendor"}</Text>
-                <Text style={styles.category}>{item.category}</Text>
-              </View>
-              <View style={styles.rightMeta}>
-                <Text style={styles.dateText}>{formatDateLabel(item.expense_date)}</Text>
-                <Text style={styles.currencyText}>{item.currency ?? "USD"}</Text>
-              </View>
-            </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`Open expense ${item.vendor ?? item.category}`}
+                onPress={() => router.push(`/expense/${item.id}` as never)}
+                style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+              >
+                <View style={styles.cardMain}>
+                  <Text style={styles.amount} numberOfLines={1} adjustsFontSizeToFit>
+                    {formatMoney(item.amount, item.currency)}
+                  </Text>
+                  <Text style={styles.vendor} numberOfLines={1}>{item.vendor ?? "Unknown vendor"}</Text>
+                  <Text style={styles.category}>{item.category}</Text>
+                </View>
+                <View style={styles.rightMeta}>
+                  <Text style={styles.dateText}>{formatDateLabel(item.expense_date)}</Text>
+                  <Text style={styles.currencyText}>{item.currency ?? "USD"}</Text>
+                </View>
+              </Pressable>
+            </SwipeableRow>
           ))
         )}
       </ScrollView>
+      <UndoToast
+        visible={Boolean(pendingDelete)}
+        message="Expense deleted"
+        onUndo={undoDelete}
+      />
     </SafeAreaView>
   );
 }
