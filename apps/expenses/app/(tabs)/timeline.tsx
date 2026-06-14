@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react";
-import { ScrollView, StyleSheet, Text, View, Pressable } from "react-native";
+import { RefreshControl, ScrollView, StyleSheet, Text, View, Pressable } from "react-native";
 import { useQuery } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
 
 import { expensesApi } from "../../src/lib/api";
 import { useAuth } from "../../src/providers/AuthProvider";
@@ -32,6 +33,7 @@ function formatDateLabel(dateString: string) {
 
 export default function TimelineScreen() {
   const { accessToken } = useAuth();
+  const router = useRouter();
   const [activeFilter, setActiveFilter] = useState<(typeof filters)[number]["key"]>("all");
   const query = useQuery({
     queryKey: ["expenses", "timeline"],
@@ -71,7 +73,18 @@ export default function TimelineScreen() {
 
   return (
     <SafeAreaView edges={["top"]} style={styles.safeArea}>
-      <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+      <ScrollView
+        style={styles.screen}
+        contentContainerStyle={styles.content}
+        refreshControl={
+          <RefreshControl
+            refreshing={query.isRefetching}
+            onRefresh={() => query.refetch()}
+            tintColor="#059669"
+            colors={["#059669"]}
+          />
+        }
+      >
         <View style={styles.headerCard}>
           <View style={styles.headerTopRow}>
             <View style={styles.headerCopy}>
@@ -143,7 +156,13 @@ export default function TimelineScreen() {
           </View>
         ) : (
           expenses.map((item) => (
-            <View key={item.id} style={styles.card}>
+            <Pressable
+              key={item.id}
+              accessibilityRole="button"
+              accessibilityLabel={`Open expense ${item.vendor ?? item.category}`}
+              onPress={() => router.push(`/expense/${item.id}` as never)}
+              style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+            >
               <View style={styles.cardMain}>
                 <Text style={styles.amount} numberOfLines={1} adjustsFontSizeToFit>
                   {formatMoney(item.amount, item.currency)}
@@ -155,7 +174,7 @@ export default function TimelineScreen() {
                 <Text style={styles.dateText}>{formatDateLabel(item.expense_date)}</Text>
                 <Text style={styles.currencyText}>{item.currency ?? "USD"}</Text>
               </View>
-            </View>
+            </Pressable>
           ))
         )}
       </ScrollView>
@@ -288,6 +307,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
   },
+  cardPressed: { opacity: 0.7 },
   messageCard: {
     borderRadius: 18,
     padding: 18,

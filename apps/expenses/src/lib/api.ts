@@ -5,7 +5,7 @@ import { getAccessToken, getStoredUser } from "./auth-storage";
 
 // ── Schemas ───────────────────────────────────────────────────────────────────
 
-const mobileUserSchema = z.object({
+export const mobileUserSchema = z.object({
   id: z.number(),
   email: z.string().email(),
   first_name: z.string().nullable().optional(),
@@ -75,14 +75,41 @@ const expenseListItemSchema = z.object({
 const expenseSchema = z.object({
   id: z.number(),
   amount: z.number().nullable().optional(),
-  currency: z.string().default("USD"),
+  currency: z.string(),
   expense_date: z.string(),
   category: z.string(),
   vendor: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
+  status: z.string().nullable().optional(),
+  label: z.string().nullable().optional(),
+  labels: z.array(z.string()).nullable().optional(),
+  payment_method: z.string().nullable().optional(),
+  reference_number: z.string().nullable().optional(),
+  tax_amount: z.number().nullable().optional(),
+  total_amount: z.number().nullable().optional(),
   analysis_status: z.string().nullable().optional(),
+  analysis_error: z.string().nullable().optional(),
   review_status: z.string().nullable().optional(),
+  reviewed_at: z.string().nullable().optional(),
+  created_at: z.string().nullable().optional(),
+  updated_at: z.string().nullable().optional(),
+  created_by_username: z.string().nullable().optional(),
   attachments_count: z.number().nullable().optional()
+});
+
+const expenseUpdateSchema = z.object({
+  amount: z.number().nullable().optional(),
+  currency: z.string().nullable().optional(),
+  expense_date: z.string().nullable().optional(),
+  category: z.string().nullable().optional(),
+  vendor: z.string().nullable().optional(),
+  notes: z.string().nullable().optional()
+});
+
+const deleteExpenseResponseSchema = z.object({
+  message: z.string(),
+  expense_id: z.number(),
+  action: z.string()
 });
 
 const expenseListSchema = z.object({
@@ -117,6 +144,13 @@ const digestPreferenceSchema = z.object({
   last_sent_at: z.string().nullable().optional()
 });
 
+const uploadReceiptResponseSchema = z.object({
+  message: z.string(),
+  filename: z.string().nullable().optional(),
+  size: z.number().nullable().optional(),
+  file_path: z.string().nullable().optional()
+});
+
 // ── Exported types ────────────────────────────────────────────────────────────
 
 export type MobileUser = z.infer<typeof mobileUserSchema>;
@@ -128,6 +162,8 @@ export type ExpenseListItem = z.infer<typeof expenseListItemSchema>;
 export type ExpenseSummary = z.infer<typeof expenseSummarySchema>;
 export type ExpenseDigestPreference = z.infer<typeof digestPreferenceSchema>;
 export type ExpenseDigestSelection = "off" | "daily" | "weekly";
+export type UploadReceiptResponse = z.infer<typeof uploadReceiptResponseSchema>;
+export type ExpenseUpdate = z.infer<typeof expenseUpdateSchema>;
 
 export type ExpenseDraft = {
   amount: number | null;
@@ -228,36 +264,13 @@ export const expensesApi = {
     }, parsedVoiceExpenseSchema);
   },
 
-  async transcribeAudio(uri: string, fileName: string, mimeType: string) {
-    const token = await getAccessToken();
-    const user = await getStoredUser();
-
+  transcribeAudio(uri: string, fileName: string, mimeType: string) {
     const formData = new FormData();
     formData.append("file", { uri, name: fileName, type: mimeType } as unknown as Blob);
-
-    const headers: Record<string, string> = {};
-    if (token) headers["Authorization"] = `Bearer ${token}`;
-    headers["X-Mobile-Expense-App-ID"] = EXPENSE_APP_ID;
-    if (user?.tenant_id) headers["X-Tenant-ID"] = String(user.tenant_id);
-
-    const response = await fetch(`${API_BASE_URL}/expenses/transcribe-audio`, {
+    return apiRequest("/expenses/transcribe-audio", {
       method: "POST",
-      headers,
       body: formData
-    });
-
-    if (!response.ok) {
-      const text = await response.text();
-      try {
-        const parsed = JSON.parse(text);
-        throw new Error(parsed.detail || `Transcription failed (${response.status})`);
-      } catch {
-        throw new Error(text || `Transcription failed (${response.status})`);
-      }
-    }
-
-    const json = await response.json();
-    return transcribeResponseSchema.parse(json);
+    }, transcribeResponseSchema);
   },
 
   createExpense(draft: ExpenseDraft) {
@@ -270,39 +283,44 @@ export const expensesApi = {
     }, expenseSchema);
   },
 
-  async uploadReceipt(expenseId: number, uri: string, fileName: string, mimeType: string) {
-    const token = await getAccessToken();
-    const user = await getStoredUser();
-
+  uploadReceipt(expenseId: number, uri: string, fileName: string, mimeType: string) {
     const formData = new FormData();
     formData.append("file", { uri, name: fileName, type: mimeType } as unknown as Blob);
-
-    const headers: Record<string, string> = {};
-    if (token) headers["Authorization"] = `Bearer ${token}`;
-    headers["X-Mobile-Expense-App-ID"] = EXPENSE_APP_ID;
-    if (user?.tenant_id) headers["X-Tenant-ID"] = String(user.tenant_id);
-
-    const response = await fetch(`${API_BASE_URL}/expenses/${expenseId}/upload-receipt`, {
+    return apiRequest(`/expenses/${expenseId}/upload-receipt`, {
       method: "POST",
-      headers,
       body: formData
-    });
-
-    if (!response.ok) {
-      const text = await response.text();
-      try {
-        const parsed = JSON.parse(text);
-        throw new Error(parsed.detail || `Upload failed (${response.status})`);
-      } catch {
-        throw new Error(text || `Upload failed (${response.status})`);
-      }
-    }
-
-    return response.json();
+    }, uploadReceiptResponseSchema);
   },
 
   getExpenses() {
     return apiRequest("/expenses/?include_total=true&limit=30", {}, expenseListSchema);
+  },
+
+  getExpense(id: number) {
+    return apiRequest(`/expenses/${id}`, {}, expenseSchema);
+  },
+
+  updateExpense(id: number, patch: ExpenseUpdate) {
+    return apiRequest(`/expenses/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(patch)
+    }, expenseSchema);
+  },
+
+  deleteExpense(id: number) {
+    return apiRequest(`/expenses/${id}`, { method: "DELETE" }, deleteExpenseResponseSchema);
+  },
+
+  submitForReview(id: number) {
+    return apiRequest(`/expenses/${id}/review`, { method: "POST" }, expenseSchema);
+  },
+
+  acceptReview(id: number) {
+    return apiRequest(`/expenses/${id}/accept-review`, { method: "POST" }, expenseSchema);
+  },
+
+  rejectReview(id: number) {
+    return apiRequest(`/expenses/${id}/reject-review`, { method: "POST" }, expenseSchema);
   },
 
   getSummary() {

@@ -8,3 +8,6 @@ expo-env.d.ts
 node_modules
 .expo
 
+# Local dev convenience symlink to the sibling backend repo
+invoice_app
+

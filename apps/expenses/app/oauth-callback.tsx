@@ -2,13 +2,15 @@ import { useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 
+import { mobileUserSchema } from "../src/lib/api";
 import { setAccessToken, setStoredUser } from "../src/lib/auth-storage";
 import { useAuth } from "../src/providers/AuthProvider";
 
 function decodeUserParam(userParam: string) {
   const normalized = userParam.replace(/-/g, "+").replace(/_/g, "/");
   const padding = normalized.length % 4 === 0 ? "" : "=".repeat(4 - (normalized.length % 4));
-  return JSON.parse(globalThis.atob(`${normalized}${padding}`));
+  const decoded = JSON.parse(globalThis.atob(`${normalized}${padding}`));
+  return mobileUserSchema.parse(decoded);
 }
 
 export default function OAuthCallbackScreen() {
