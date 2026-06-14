@@ -96,6 +96,7 @@ export default function CaptureScreen() {
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const recordingRef = useRef<Audio.Recording | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ── Receipt state ────────────────────────────────────────────────────────
   const [receiptPhase, setReceiptPhase] = useState<ReceiptPhase>("idle");
@@ -111,6 +112,21 @@ export default function CaptureScreen() {
       recordingRef.current?.stopAndUnloadAsync().catch(() => undefined);
     };
   }, []);
+
+  useEffect(() => {
+    if (voicePhase === "saved" || receiptPhase === "done") {
+      resetTimerRef.current = setTimeout(() => {
+        if (voicePhase === "saved") resetVoice();
+        if (receiptPhase === "done") resetReceipt();
+      }, 2500);
+      return () => {
+        if (resetTimerRef.current) {
+          clearTimeout(resetTimerRef.current);
+          resetTimerRef.current = null;
+        }
+      };
+    }
+  }, [voicePhase, receiptPhase]);
 
   // ── Voice: start / stop recording ───────────────────────────────────────
 
