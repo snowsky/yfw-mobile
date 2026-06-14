@@ -159,6 +159,17 @@ export default function InboxScreen() {
               <Text style={styles.summaryLabel}>To review</Text>
             </View>
           </View>
+          {reviewCount > 0 ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Review ${reviewCount} ${reviewCount === 1 ? "expense" : "expenses"}`}
+              style={styles.reviewAllButton}
+              onPress={() => router.push("/review" as never)}
+            >
+              <Feather name="zap" size={16} color="#ffffff" />
+              <Text style={styles.reviewAllText}>Review {reviewCount}</Text>
+            </Pressable>
+          ) : null}
         </View>
 
         {query.isLoading ? (
@@ -347,6 +358,20 @@ const styles = StyleSheet.create({
   queueSummary: {
     flexDirection: "row",
     gap: 8,
+  },
+  reviewAllButton: {
+    minHeight: 48,
+    borderRadius: 14,
+    backgroundColor: "#059669",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  reviewAllText: {
+    fontFamily: "Outfit_700Bold",
+    fontSize: 15,
+    color: "#ffffff",
   },
   queueSummaryItem: {
     flex: 1,
