@@ -14,6 +14,7 @@ import { Feather } from "@expo/vector-icons";
 import { Audio } from "expo-av";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
+import * as Haptics from "expo-haptics";
 
 import { expensesApi, type ExpenseDraft, type ParsedVoiceExpense } from "../../src/lib/api";
 import { useAuth } from "../../src/providers/AuthProvider";
@@ -114,6 +115,7 @@ export default function CaptureScreen() {
       );
       recordingRef.current = recording;
       setVoicePhase("recording");
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
       setRecordingSeconds(0);
       timerRef.current = setInterval(() => setRecordingSeconds((s) => s + 1), 1000);
     } catch (e) {
@@ -122,6 +124,7 @@ export default function CaptureScreen() {
   }
 
   async function stopRecording() {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
@@ -186,6 +189,7 @@ export default function CaptureScreen() {
       await expensesApi.createExpense(draft);
       queryClient.invalidateQueries({ queryKey: ["expenses"] });
       setVoicePhase("saved");
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     } catch (e) {
       setVoiceError(e instanceof Error ? e.message : "Failed to save expense.");
       setVoicePhase("parsed");
@@ -203,6 +207,7 @@ export default function CaptureScreen() {
   // ── Receipt: capture photo ───────────────────────────────────────────────
 
   async function handlePickReceipt() {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     setReceiptError("");
     try {
       const ImagePicker = await import("expo-image-picker");
@@ -251,6 +256,7 @@ export default function CaptureScreen() {
       await expensesApi.uploadReceipt(expenseId, receiptUri, receiptFileName, receiptMime);
       queryClient.invalidateQueries({ queryKey: ["expenses"] });
       setReceiptPhase("done");
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     } catch (e) {
       setReceiptError(e instanceof Error ? e.message : "Upload failed.");
       setReceiptPhase("previewing");
