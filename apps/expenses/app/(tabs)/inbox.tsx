@@ -7,6 +7,7 @@ import { useRouter } from "expo-router";
 
 import { expensesApi } from "../../src/lib/api";
 import { useAuth } from "../../src/providers/AuthProvider";
+import { SwipeableRow } from "../../src/components/SwipeableRow";
 
 function getInboxState(expense: { analysis_status?: string | null; review_status?: string | null }) {
   if (expense.analysis_status === "failed" || expense.review_status === "failed") {
@@ -53,6 +54,19 @@ export default function InboxScreen() {
 
   const approveMutation = useMutation({
     mutationFn: (id: number) => expensesApi.acceptReview(id),
+    onMutate: async (id: number) => {
+      await queryClient.cancelQueries({ queryKey: ["expenses", "inbox"] });
+      const previous = queryClient.getQueryData(["expenses", "inbox"]);
+      queryClient.setQueryData(["expenses", "inbox"], (old: any) =>
+        old ? { ...old, expenses: old.expenses.filter((e: any) => e.id !== id) } : old
+      );
+      return { previous };
+    },
+    onError: (_err, _id, context: any) => {
+      if (context?.previous) {
+        queryClient.setQueryData(["expenses", "inbox"], context.previous);
+      }
+    },
     onSettled: () => {
       setPendingId(null);
       queryClient.invalidateQueries({ queryKey: ["expenses"] });
@@ -61,6 +75,19 @@ export default function InboxScreen() {
 
   const rejectMutation = useMutation({
     mutationFn: (id: number) => expensesApi.rejectReview(id),
+    onMutate: async (id: number) => {
+      await queryClient.cancelQueries({ queryKey: ["expenses", "inbox"] });
+      const previous = queryClient.getQueryData(["expenses", "inbox"]);
+      queryClient.setQueryData(["expenses", "inbox"], (old: any) =>
+        old ? { ...old, expenses: old.expenses.filter((e: any) => e.id !== id) } : old
+      );
+      return { previous };
+    },
+    onError: (_err, _id, context: any) => {
+      if (context?.previous) {
+        queryClient.setQueryData(["expenses", "inbox"], context.previous);
+      }
+    },
     onSettled: () => {
       setPendingId(null);
       queryClient.invalidateQueries({ queryKey: ["expenses"] });
@@ -160,13 +187,43 @@ export default function InboxScreen() {
             const isActing = pendingId === item.id;
 
             return (
-              <Pressable
+              <SwipeableRow
                 key={item.id}
-                accessibilityRole="button"
-                accessibilityLabel={`Open expense ${item.vendor ?? item.category}`}
-                onPress={() => router.push(`/expense/${item.id}` as never)}
-                style={({ pressed }) => [styles.cardColumn, pressed && styles.cardPressed]}
+                disabled={!isReviewable}
+                triggerOnOpen
+                leftAction={
+                  isReviewable
+                    ? {
+                        label: "Approve",
+                        icon: "check",
+                        color: "#059669",
+                        onTrigger: () => {
+                          setPendingId(item.id);
+                          approveMutation.mutate(item.id);
+                        },
+                      }
+                    : undefined
+                }
+                rightAction={
+                  isReviewable
+                    ? {
+                        label: "Reject",
+                        icon: "x",
+                        color: "#dc2626",
+                        onTrigger: () => {
+                          setPendingId(item.id);
+                          rejectMutation.mutate(item.id);
+                        },
+                      }
+                    : undefined
+                }
               >
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Open expense ${item.vendor ?? item.category}`}
+                  onPress={() => router.push(`/expense/${item.id}` as never)}
+                  style={({ pressed }) => [styles.cardColumn, pressed && styles.cardPressed]}
+                >
                 <View style={styles.cardTopRow}>
                   <View style={styles.cardMain}>
                     <Text style={styles.amount} numberOfLines={1} adjustsFontSizeToFit>
@@ -227,7 +284,8 @@ export default function InboxScreen() {
                     </Pressable>
                   </View>
                 ) : null}
-              </Pressable>
+                </Pressable>
+              </SwipeableRow>
             );
           })
         )}
