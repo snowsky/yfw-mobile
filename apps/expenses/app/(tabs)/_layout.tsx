@@ -1,3 +1,5 @@
+import { Platform, StyleSheet } from "react-native";
+import { BlurView } from "expo-blur";
 import { Redirect, Tabs } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 
@@ -18,16 +20,34 @@ export default function TabsLayout() {
         tabBarActiveTintColor: "#059669",
         tabBarInactiveTintColor: "#94a3b8",
         tabBarStyle: {
-          height: 78,
-          paddingTop: 10,
-          paddingBottom: 10,
-          backgroundColor: "#F8FAFC",
-          borderTopColor: "rgba(0, 0, 0, 0.05)",
-          elevation: 0,
+          position: "absolute",
+          bottom: Platform.OS === "ios" ? 28 : 20,
+          left: 16,
+          right: 16,
+          height: 66,
+          borderRadius: 24,
+          backgroundColor: Platform.OS === "ios" ? "rgba(255, 255, 255, 0.85)" : "#ffffff",
+          shadowColor: "#0f172a",
+          shadowOffset: { width: 0, height: 10 },
+          shadowOpacity: 0.12,
+          shadowRadius: 18,
+          elevation: 5,
+          borderTopWidth: 0,
+          paddingBottom: Platform.OS === "ios" ? 0 : 4,
+          paddingTop: 4,
+          overflow: "hidden",
         },
+        tabBarBackground: Platform.OS === "ios" ? () => (
+          <BlurView tint="light" intensity={60} style={StyleSheet.absoluteFill} />
+        ) : undefined,
         tabBarLabelStyle: {
-          fontSize: 12,
+          fontSize: 11,
           fontFamily: "Outfit_600SemiBold",
+          marginTop: -2,
+          marginBottom: 4,
+        },
+        tabBarIconStyle: {
+          marginTop: 2,
         }
       }}
     >

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { RefreshControl, ScrollView, StyleSheet, Text, View, Pressable } from "react-native";
+import { RefreshControl, ScrollView, StyleSheet, Text, View, Pressable, TextInput } from "react-native";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -41,10 +41,34 @@ function formatDateLabel(dateString: string) {
   }).format(new Date(`${dateString}T00:00:00`));
 }
 
+function getCategoryIcon(category: string) {
+  const name = category.toLowerCase();
+  if (name.includes("food") || name.includes("meal") || name.includes("dining") || name.includes("restaurant") || name.includes("cafe")) {
+    return { name: "coffee" as const, color: "#d97706", bg: "rgba(217, 119, 6, 0.08)" };
+  }
+  if (name.includes("travel") || name.includes("flight") || name.includes("hotel") || name.includes("taxi") || name.includes("car") || name.includes("ride")) {
+    return { name: "compass" as const, color: "#2563eb", bg: "rgba(37, 99, 235, 0.08)" };
+  }
+  if (name.includes("office") || name.includes("supplies") || name.includes("stationery") || name.includes("furniture")) {
+    return { name: "briefcase" as const, color: "#7c3aed", bg: "rgba(124, 58, 237, 0.08)" };
+  }
+  if (name.includes("software") || name.includes("saas") || name.includes("subscription") || name.includes("tech") || name.includes("cloud")) {
+    return { name: "monitor" as const, color: "#0891b2", bg: "rgba(8, 145, 178, 0.08)" };
+  }
+  if (name.includes("utility") || name.includes("phone") || name.includes("internet") || name.includes("electric") || name.includes("power")) {
+    return { name: "zap" as const, color: "#ca8a04", bg: "rgba(202, 138, 4, 0.08)" };
+  }
+  if (name.includes("marketing") || name.includes("ads") || name.includes("advert") || name.includes("promo")) {
+    return { name: "megaphone" as const, color: "#db2777", bg: "rgba(219, 39, 119, 0.08)" };
+  }
+  return { name: "tag" as const, color: "#059669", bg: "rgba(5, 150, 105, 0.08)" };
+}
+
 export default function TimelineScreen() {
   const { accessToken } = useAuth();
   const router = useRouter();
   const [activeFilter, setActiveFilter] = useState<(typeof filters)[number]["key"]>("all");
+  const [searchQuery, setSearchQuery] = useState("");
   const query = useQuery({
     queryKey: ["expenses", "timeline"],
     queryFn: expensesApi.getExpenses,
@@ -95,8 +119,19 @@ export default function TimelineScreen() {
   const expenses = useMemo(() => {
     const all = query.data?.expenses ?? [];
     const now = new Date();
+    const cleanSearch = searchQuery.toLowerCase().trim();
 
     return all.filter((expense) => {
+      // 1. Search query filter
+      if (cleanSearch) {
+        const vendor = (expense.vendor ?? "").toLowerCase();
+        const category = (expense.category ?? "").toLowerCase();
+        if (!vendor.includes(cleanSearch) && !category.includes(cleanSearch)) {
+          return false;
+        }
+      }
+
+      // 2. Date window filter
       if (activeFilter === "all") return true;
 
       const expenseDate = new Date(`${expense.expense_date}T00:00:00`);
@@ -110,7 +145,7 @@ export default function TimelineScreen() {
 
       return true;
     });
-  }, [activeFilter, query.data?.expenses]);
+  }, [activeFilter, searchQuery, query.data?.expenses]);
 
   const summary = useMemo(() => {
     const total = expenses.reduce((sum, expense) => sum + (expense.amount ?? 0), 0);
@@ -152,6 +187,24 @@ export default function TimelineScreen() {
               <Feather name="rotate-cw" size={17} color="#334155" />
             </Pressable>
           </View>
+          <View style={styles.searchBar}>
+            <Feather name="search" size={16} color="#64748B" style={styles.searchIcon} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search by vendor or category..."
+              placeholderTextColor="#94A3B8"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              autoCapitalize="none"
+              clearButtonMode="while-editing"
+            />
+            {searchQuery ? (
+              <Pressable onPress={() => setSearchQuery("")} style={styles.searchClear} hitSlop={10}>
+                <Feather name="x" size={14} color="#64748B" />
+              </Pressable>
+            ) : null}
+          </View>
+
           <View style={styles.summaryRow}>
             <View style={styles.summaryBlock}>
               <Text style={styles.summaryLabel}>Total</Text>
@@ -208,36 +261,43 @@ export default function TimelineScreen() {
         ) : (
           expenses
             .filter((item) => item.id !== pendingDelete?.id)
-            .map((item) => (
-            <SwipeableRow
-              key={item.id}
-              rightAction={{
-                label: "Delete",
-                icon: "trash-2",
-                color: "#dc2626",
-                onTrigger: () => requestDelete(item),
-              }}
-            >
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={`Open expense ${item.vendor ?? item.category}`}
-                onPress={() => router.push(`/expense/${item.id}` as never)}
-                style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
-              >
-                <View style={styles.cardMain}>
-                  <Text style={styles.amount} numberOfLines={1} adjustsFontSizeToFit>
-                    {formatMoney(item.amount, item.currency)}
-                  </Text>
-                  <Text style={styles.vendor} numberOfLines={1}>{item.vendor ?? "Unknown vendor"}</Text>
-                  <Text style={styles.category}>{item.category}</Text>
-                </View>
-                <View style={styles.rightMeta}>
-                  <Text style={styles.dateText}>{formatDateLabel(item.expense_date)}</Text>
-                  <Text style={styles.currencyText}>{item.currency ?? "USD"}</Text>
-                </View>
-              </Pressable>
-            </SwipeableRow>
-          ))
+            .map((item) => {
+              const catIcon = getCategoryIcon(item.category);
+              return (
+                <SwipeableRow
+                  key={item.id}
+                  rightAction={{
+                    label: "Delete",
+                    icon: "trash-2",
+                    color: "#dc2626",
+                    onTrigger: () => requestDelete(item),
+                  }}
+                >
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`Open expense ${item.vendor ?? item.category}`}
+                    onPress={() => router.push(`/expense/${item.id}` as never)}
+                    style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+                  >
+                    <View style={[styles.categoryIconCircle, { backgroundColor: catIcon.bg }]}>
+                      <Feather name={catIcon.name as any} size={18} color={catIcon.color} />
+                    </View>
+                    <View style={styles.cardMain}>
+                      <View style={styles.cardMainHeader}>
+                        <Text style={styles.vendor} numberOfLines={1}>{item.vendor ?? "Unknown vendor"}</Text>
+                        <Text style={styles.amount} numberOfLines={1} adjustsFontSizeToFit>
+                          {formatMoney(item.amount, item.currency)}
+                        </Text>
+                      </View>
+                      <View style={styles.cardMainFooter}>
+                        <Text style={styles.categoryText}>{item.category}</Text>
+                        <Text style={styles.dateText}>{formatDateLabel(item.expense_date)}</Text>
+                      </View>
+                    </View>
+                  </Pressable>
+                </SwipeableRow>
+              );
+            })
         )}
       </ScrollView>
       <UndoToast
@@ -252,11 +312,11 @@ export default function TimelineScreen() {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: "#F8FAFC" },
   screen: { flex: 1, backgroundColor: "#F8FAFC" },
-  content: { padding: 16, gap: 16 },
+  content: { padding: 16, gap: 16, paddingBottom: 120 },
   headerCard: {
     borderRadius: 18,
     padding: 18,
-    gap: 12,
+    gap: 14,
     backgroundColor: "#ffffff",
     shadowColor: "#cbd5e1",
     shadowOffset: { width: 0, height: 4 },
@@ -295,6 +355,30 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     opacity: 0.55,
+  },
+  searchBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F1F5F9",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    height: 44,
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontFamily: "Outfit_400Regular",
+    fontSize: 14,
+    color: "#0F172A",
+    height: "100%",
+    padding: 0,
+  },
+  searchClear: {
+    padding: 4,
   },
   summaryRow: {
     flexDirection: "row",
@@ -362,12 +446,10 @@ const styles = StyleSheet.create({
   },
   card: {
     borderRadius: 18,
-    padding: 18,
+    padding: 16,
     backgroundColor: "#ffffff",
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    gap: 12,
     shadowColor: "#cbd5e1",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
@@ -375,6 +457,51 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   cardPressed: { opacity: 0.7 },
+  categoryIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+  cardMain: {
+    flex: 1,
+    minWidth: 0,
+  },
+  cardMainHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "baseline",
+    gap: 8,
+  },
+  cardMainFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 4,
+  },
+  amount: {
+    fontFamily: "Outfit_700Bold",
+    fontSize: 18,
+    color: "#0F172A",
+  },
+  vendor: {
+    flex: 1,
+    fontFamily: "Outfit_600SemiBold",
+    fontSize: 15,
+    color: "#0F172A",
+  },
+  categoryText: {
+    fontFamily: "Outfit_500Medium",
+    fontSize: 13,
+    color: "#94a3b8",
+  },
+  dateText: {
+    fontFamily: "Outfit_400Regular",
+    fontSize: 13,
+    color: "#64748B",
+  },
   messageCard: {
     borderRadius: 18,
     padding: 18,
@@ -385,43 +512,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 2,
-  },
-  cardMain: {
-    flex: 1,
-    minWidth: 0,
-  },
-  amount: {
-    fontFamily: "Outfit_700Bold",
-    fontSize: 24,
-    color: "#0F172A",
-  },
-  vendor: {
-    marginTop: 2,
-    fontFamily: "Outfit_500Medium",
-    fontSize: 14,
-    color: "#475569",
-  },
-  category: {
-    marginTop: 8,
-    fontFamily: "Outfit_600SemiBold",
-    fontSize: 11,
-    textTransform: "uppercase",
-    color: "#94a3b8",
-  },
-  rightMeta: {
-    alignItems: "flex-end",
-    gap: 4,
-    maxWidth: 122,
-  },
-  dateText: {
-    fontFamily: "Outfit_500Medium",
-    fontSize: 14,
-    color: "#64748B",
-  },
-  currencyText: {
-    fontFamily: "Outfit_400Regular",
-    fontSize: 14,
-    color: "#94a3b8",
   },
   emptyTitle: {
     fontFamily: "Outfit_700Bold",

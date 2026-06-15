@@ -196,6 +196,8 @@ const styles = StyleSheet.create({
     gap: 6,
     alignSelf: "flex-start",
     backgroundColor: "#fffbeb",
+    borderWidth: 1,
+    borderColor: "rgba(217, 119, 6, 0.15)",
     borderRadius: 999,
     paddingHorizontal: 12,
     paddingVertical: 8,

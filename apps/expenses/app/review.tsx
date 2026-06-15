@@ -146,7 +146,9 @@ export default function ReviewScreen() {
 
       {isDone ? (
         <View style={styles.centerWrap}>
-          <Feather name="check-circle" size={48} color="#059669" />
+          <View style={styles.doneIconCircle}>
+            <Feather name="check-circle" size={48} color="#059669" />
+          </View>
           <Text style={styles.doneTitle}>All caught up</Text>
           <Text style={styles.doneSummary}>
             Reviewed {decisions.length} · {approvedCount} approved, {rejectedCount} rejected
@@ -243,6 +245,17 @@ const styles = StyleSheet.create({
   },
   progress: { fontFamily: "Outfit_700Bold", fontSize: 16, color: "#0f172a" },
   centerWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, padding: 24 },
+  doneIconCircle: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: "rgba(5, 150, 105, 0.06)",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(5, 150, 105, 0.12)",
+    marginBottom: 8,
+  },
   centerText: { fontFamily: "Outfit_500Medium", fontSize: 14, color: "#64748b" },
   stack: { flex: 1, alignItems: "center", justifyContent: "center" },
   peek: {

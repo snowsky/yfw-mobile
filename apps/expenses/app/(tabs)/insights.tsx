@@ -35,18 +35,24 @@ export default function InsightsScreen() {
       value: asCurrency(current?.total_amount),
       detail: `${current?.count ?? 0} expenses`,
       icon: "credit-card",
+      iconColor: "#059669",
+      iconBg: "rgba(16, 185, 129, 0.06)",
     },
     {
       title: "Previous month",
       value: asCurrency(previous?.total_amount),
       detail: `${previous?.count ?? 0} expenses`,
-      icon: change > 0 ? "trending-up" : "trending-down",
+      icon: "calendar",
+      iconColor: "#64748b",
+      iconBg: "rgba(100, 116, 139, 0.06)",
     },
     {
       title: "Change",
       value: `${change >= 0 ? "+" : ""}${change.toFixed(1)}%`,
       detail: "Compared with previous period",
-      icon: change > 0 ? "arrow-up-right" : "arrow-down-right",
+      icon: change > 0 ? "trending-up" : "trending-down",
+      iconColor: changeTone,
+      iconBg: changeIsIncrease ? "rgba(239, 68, 68, 0.06)" : "rgba(16, 185, 129, 0.06)",
       tone: changeTone,
     },
   ];
@@ -94,8 +100,8 @@ export default function InsightsScreen() {
                 </Text>
                 <Text style={styles.metricDetail}>{card.detail}</Text>
               </View>
-              <View style={styles.metricIconWrap}>
-                <Feather name={card.icon as any} size={18} color={card.tone ?? "#059669"} />
+              <View style={[styles.metricIconWrap, { backgroundColor: card.iconBg }]}>
+                <Feather name={card.icon as any} size={20} color={card.iconColor} />
               </View>
             </View>
           ))
@@ -108,22 +114,29 @@ export default function InsightsScreen() {
           {categoryBreakdown.length === 0 && !query.isLoading ? (
             <Text style={styles.emptyText}>No category data yet. Capture expenses to build this view.</Text>
           ) : (
-            categoryBreakdown.map((category) => (
-              <View key={category.category} style={styles.categoryRow}>
-                <View style={styles.categoryRowTop}>
-                  <Text style={styles.categoryName} numberOfLines={1}>{category.category}</Text>
-                  <Text style={styles.categoryAmount}>{asCurrency(category.total_amount)}</Text>
+            categoryBreakdown.map((category, idx) => {
+              const breakdownColors = ["#059669", "#3b82f6", "#8b5cf6", "#f59e0b", "#06b6d4"];
+              const barColor = breakdownColors[idx % breakdownColors.length];
+              return (
+                <View key={category.category} style={styles.categoryRow}>
+                  <View style={styles.categoryRowTop}>
+                    <Text style={styles.categoryName} numberOfLines={1}>{category.category}</Text>
+                    <Text style={styles.categoryAmount}>{asCurrency(category.total_amount)}</Text>
+                  </View>
+                  <View style={styles.barTrack}>
+                    <View
+                      style={[
+                        styles.barFill,
+                        {
+                          width: `${Math.min(100, Number(category.percentage || 0))}%`,
+                          backgroundColor: barColor,
+                        },
+                      ]}
+                    />
+                  </View>
                 </View>
-                <View style={styles.barTrack}>
-                  <View
-                    style={[
-                      styles.barFill,
-                      { width: `${Math.min(100, Number(category.percentage || 0))}%` },
-                    ]}
-                  />
-                </View>
-              </View>
-            ))
+              );
+            })
           )}
         </View>
       </ScrollView>
@@ -134,7 +147,7 @@ export default function InsightsScreen() {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: "#F8FAFC" },
   screen: { flex: 1, backgroundColor: "#F8FAFC" },
-  content: { padding: 16, gap: 16 },
+  content: { padding: 16, gap: 16, paddingBottom: 120 },
   heroCard: {
     borderRadius: 18,
     padding: 20,

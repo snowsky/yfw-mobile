@@ -25,11 +25,11 @@ type ReceiptPhase = "idle" | "previewing" | "uploading" | "done";
 
 function RecordingPulse() {
   const scale = useSharedValue(1);
-  const opacity = useSharedValue(0.7);
+  const opacity = useSharedValue(0.4);
 
   useEffect(() => {
-    scale.value = withRepeat(withTiming(2.4, { duration: 1200 }), -1, false);
-    opacity.value = withRepeat(withTiming(0, { duration: 1200 }), -1, false);
+    scale.value = withRepeat(withTiming(1.8, { duration: 1500 }), -1, false);
+    opacity.value = withRepeat(withTiming(0, { duration: 1500 }), -1, false);
   }, [scale, opacity]);
 
   const ringStyle = useAnimatedStyle(() => ({
@@ -40,7 +40,6 @@ function RecordingPulse() {
   return (
     <View style={styles.pulseWrap} pointerEvents="none" importantForAccessibility="no-hide-descendants">
       <Animated.View style={[styles.pulseRing, ringStyle]} />
-      <View style={styles.pulseDot} />
     </View>
   );
 }
@@ -72,7 +71,7 @@ function SegmentedControl({
             onPress={() => onChange(seg.key)}
             style={[styles.segmentItem, active && styles.segmentItemActive]}
           >
-            <Feather name={seg.icon} size={16} color={active ? "#ffffff" : "#64748b"} />
+            <Feather name={seg.icon} size={16} color={active ? "#059669" : "#64748b"} />
             <Text style={[styles.segmentText, active ? styles.segmentTextActive : styles.segmentTextInactive]}>
               {seg.label}
             </Text>
@@ -271,6 +270,32 @@ export default function CaptureScreen() {
     }
   }
 
+  async function handlePickGallery() {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    setReceiptError("");
+    try {
+      const ImagePicker = await import("expo-image-picker");
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!perm.granted) {
+        setReceiptError("Gallery permission is required.");
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.8 });
+      if (result.canceled) return;
+
+      const asset = result.assets[0];
+      const ext = (asset.fileName ?? asset.uri).split(".").pop()?.toLowerCase() ?? "jpg";
+      const mime = ext === "png" ? "image/png" : "image/jpeg";
+      setReceiptUri(asset.uri);
+      setReceiptFileName(asset.fileName ?? `receipt_${Date.now()}.${ext}`);
+      setReceiptMime(mime);
+      setReceiptExpenseId(null);
+      setReceiptPhase("previewing");
+    } catch (e) {
+      setReceiptError(e instanceof Error ? e.message : "Gallery error.");
+    }
+  }
+
   // ── Receipt: create expense + upload ────────────────────────────────────
 
   async function handleUploadReceipt() {
@@ -378,17 +403,30 @@ export default function CaptureScreen() {
             {receiptError ? <Text style={styles.errorText}>{receiptError}</Text> : null}
 
             {(receiptPhase === "idle" || receiptPhase === "done") && (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={receiptPhase === "done" ? "Scan another receipt" : "Scan receipt"}
-                style={[styles.inlineBtn, styles.primaryBtn]}
-                onPress={handlePickReceipt}
-              >
-                <Feather name="camera" size={16} color="#ffffff" />
-                <Text style={styles.primaryBtnText}>
-                  {receiptPhase === "done" ? "Scan another receipt" : "Scan receipt"}
-                </Text>
-              </Pressable>
+              <View style={styles.inlineRow}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={receiptPhase === "done" ? "Scan another receipt" : "Camera scan"}
+                  style={[styles.inlineBtn, styles.primaryBtn, { flex: 1 }]}
+                  onPress={handlePickReceipt}
+                >
+                  <Feather name="camera" size={16} color="#ffffff" />
+                  <Text style={styles.primaryBtnText}>
+                    {receiptPhase === "done" ? "Camera scan" : "Camera scan"}
+                  </Text>
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Choose from gallery"
+                  style={[styles.inlineBtn, styles.outlineBtn, { flex: 1 }]}
+                  onPress={handlePickGallery}
+                >
+                  <Feather name="image" size={16} color="#059669" />
+                  <Text style={[styles.outlineBtnText, { color: "#059669" }]}>
+                    Choose gallery
+                  </Text>
+                </Pressable>
+              </View>
             )}
 
             {receiptPhase === "previewing" && (
@@ -434,44 +472,43 @@ export default function CaptureScreen() {
               </Text>
             </View>
 
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={voicePhase === "recording" ? "Stop recording" : "Record voice expense"}
-              style={[
-                styles.inlineBtn,
-                voicePhase === "recording" ? styles.recordBtnActive : styles.primaryBtn,
-                isVoiceBusy && styles.buttonDisabled,
-              ]}
-              onPress={voicePhase === "saved" ? resetVoice : handleToggleRecording}
-              disabled={isVoiceBusy}
-            >
-              {isVoiceBusy ? (
-                <ActivityIndicator color="#ffffff" />
-              ) : (
-                <>
+            {/* Circular mic recorder container */}
+            <View style={styles.micContainer}>
+              {voicePhase === "recording" && <RecordingPulse />}
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={voicePhase === "recording" ? "Stop recording" : "Record voice expense"}
+                style={[
+                  styles.micCircle,
+                  voicePhase === "recording" && styles.micCircleActive,
+                  isVoiceBusy && styles.buttonDisabled,
+                ]}
+                onPress={voicePhase === "saved" ? resetVoice : handleToggleRecording}
+                disabled={isVoiceBusy}
+              >
+                {isVoiceBusy ? (
+                  <ActivityIndicator color="#ffffff" size="large" />
+                ) : (
                   <Feather
                     name={voicePhase === "recording" ? "square" : voicePhase === "saved" ? "check-circle" : "mic"}
-                    size={16}
+                    size={28}
                     color="#ffffff"
                   />
-                  <Text style={styles.primaryBtnText}>
-                    {voicePhase === "recording"
-                      ? `Stop recording  ${fmtTime(recordingSeconds)}`
-                      : voicePhase === "saved"
-                      ? "Record another"
-                      : "Record voice expense"}
-                  </Text>
-                </>
-              )}
-            </Pressable>
-
-            {voicePhase === "recording" && (
-              <View style={styles.recordingRow}>
-                <RecordingPulse />
-                <Text style={styles.recordingTimer}>{fmtTime(recordingSeconds)}</Text>
-                <Text style={styles.recordingHint}>Listening…</Text>
-              </View>
-            )}
+                )}
+              </Pressable>
+              
+              <Text style={styles.micStatusText}>
+                {voicePhase === "recording"
+                  ? `Listening… ${fmtTime(recordingSeconds)}`
+                  : voicePhase === "transcribing"
+                  ? "Transcribing your audio…"
+                  : voicePhase === "saving"
+                  ? "Saving expense…"
+                  : voicePhase === "saved"
+                  ? "Saved successfully!"
+                  : "Tap to record and speak"}
+              </Text>
+            </View>
 
             <TextInput
               multiline
@@ -558,7 +595,7 @@ export default function CaptureScreen() {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: "#F8FAFC" },
   screen: { flex: 1, backgroundColor: "#F8FAFC" },
-  content: { padding: 16, gap: 16, paddingBottom: 40 },
+  content: { padding: 16, gap: 16, paddingBottom: 120 },
 
   // Hero card
   heroCard: {
@@ -578,22 +615,79 @@ const styles = StyleSheet.create({
   heroBody: { fontFamily: "Outfit_400Regular", fontSize: 13, lineHeight: 18, color: "#ecfdf5" },
   heroTopRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 12 },
   heroSignOut: { fontFamily: "Outfit_700Bold", fontSize: 13, color: "#ffffff" },
-  segment: { flexDirection: "row", backgroundColor: "#eef2f6", borderRadius: 14, padding: 4, gap: 4 },
-  segmentItem: {
-    flex: 1, minHeight: 44, borderRadius: 11,
-    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
+  segment: {
+    flexDirection: "row",
+    backgroundColor: "#F1F5F9",
+    borderRadius: 16,
+    padding: 6,
+    borderWidth: 1,
+    borderColor: "#E2E8F0"
   },
-  segmentItemActive: { backgroundColor: "#059669" },
+  segmentItem: {
+    flex: 1,
+    minHeight: 46,
+    borderRadius: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  segmentItemActive: {
+    backgroundColor: "#ffffff",
+    shadowColor: "#0f172a",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 2,
+  },
   segmentText: { fontFamily: "Outfit_600SemiBold", fontSize: 14 },
-  segmentTextActive: { color: "#ffffff" },
-  segmentTextInactive: { color: "#64748b" },
-  recordBtnActive: { backgroundColor: "#ef4444" },
-  recordingRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-  recordingTimer: { fontFamily: "Outfit_700Bold", fontSize: 18, color: "#ef4444" },
-  recordingHint: { fontFamily: "Outfit_500Medium", fontSize: 13, color: "#94a3b8" },
-  pulseWrap: { width: 16, height: 16, alignItems: "center", justifyContent: "center" },
-  pulseRing: { position: "absolute", width: 16, height: 16, borderRadius: 8, backgroundColor: "#ef4444" },
-  pulseDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#ef4444" },
+  segmentTextActive: { color: "#0F172A" },
+  segmentTextInactive: { color: "#64748B" },
+  
+  // Mic Container UI
+  micContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 24,
+    gap: 16,
+  },
+  micCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "#059669",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#059669",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  micCircleActive: {
+    backgroundColor: "#ef4444",
+    shadowColor: "#ef4444",
+  },
+  micStatusText: {
+    fontFamily: "Outfit_600SemiBold",
+    fontSize: 15,
+    color: "#475569",
+    marginTop: 4,
+  },
+  pulseWrap: {
+    position: "absolute",
+    width: 80,
+    height: 80,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  pulseRing: {
+    position: "absolute",
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "#ef4444",
+  },
   buttonDisabled: { opacity: 0.55 },
 
   // Section cards
