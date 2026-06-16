@@ -68,18 +68,18 @@ export default function InsightsScreen() {
     },
   ];
 
-  const pillTint = tokens.color.onPrimary + "26"; // ~15% over the teal hero
+    const changeAccent = changeIsIncrease ? tokens.color.danger : tokens.color.success;
 
   return (
     <Screen scroll contentContainerStyle={{ gap: tokens.spacing.lg }}>
       <View style={styles.heroCard}>
-        <Text variant="bodySm" style={{ color: pillTextColor(tokens) }}>This month</Text>
-        <Text variant="display" style={{ color: tokens.color.onPrimary }}>{asCurrency(current?.total_amount)}</Text>
+        <Text variant="bodySm" color="textMuted">This month</Text>
+        <Text variant="display" color="primary">{asCurrency(current?.total_amount)}</Text>
         <View style={styles.heroMetaRow}>
-          <Text variant="bodyLg" style={{ color: pillTextColor(tokens) }}>{current?.count ?? 0} expenses</Text>
-          <View style={[styles.changePill, { backgroundColor: pillTint }]}>
-            <Feather name={changeIsIncrease ? "trending-up" : "trending-down"} size={14} color={tokens.color.onPrimary} />
-            <Text variant="bodySm" style={{ color: tokens.color.onPrimary }}>
+          <Text variant="bodyLg" color="textMuted">{current?.count ?? 0} expenses</Text>
+          <View style={[styles.changePill, { backgroundColor: changeAccent + "1A" }]}>
+            <Feather name={changeIsIncrease ? "trending-up" : "trending-down"} size={14} color={changeAccent} />
+            <Text variant="bodySm" style={{ color: changeAccent }}>
               {change >= 0 ? "+" : ""}{change.toFixed(1)}%
             </Text>
           </View>
@@ -156,18 +156,14 @@ export default function InsightsScreen() {
   );
 }
 
-// The muted text color that reads well on the teal hero.
-function pillTextColor(t: ThemeTokens) {
-  return t.color.onPrimary + "CC"; // ~80% of onPrimary
-}
-
 const makeStyles = (t: ThemeTokens) => ({
   heroCard: {
     borderRadius: t.radii.xl,
     padding: t.spacing.xl,
-    gap: t.spacing.sm,
-    backgroundColor: t.color.primary,
-    ...t.shadow.medium,
+    gap: t.spacing.xs,
+    backgroundColor: t.color.primaryMuted,
+    borderWidth: 1,
+    borderColor: t.color.primary + "26",
   },
   heroMetaRow: {
     flexDirection: "row" as const,

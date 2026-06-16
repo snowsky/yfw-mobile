@@ -369,12 +369,12 @@ export default function CaptureScreen() {
         {/* ── Slim hero ── */}
         <View style={styles.heroCard}>
           <View style={styles.heroTopRow}>
-            <Text variant="headingLg" style={{ color: tokens.color.onPrimary, flex: 1 }} numberOfLines={1}>Capture in seconds</Text>
+            <Text variant="headingXl" style={{ flex: 1 }} numberOfLines={2}>Capture in seconds</Text>
             <Pressable onPress={logout} hitSlop={10} accessibilityRole="button" accessibilityLabel="Sign out">
-              <Text variant="bodyMd" style={{ color: tokens.color.onPrimary, fontFamily: "Inter_700Bold" }}>Sign out</Text>
+              <Text variant="bodyMd" color="primary" style={{ fontFamily: "Inter_600SemiBold" }}>Sign out</Text>
             </Pressable>
           </View>
-          <Text variant="bodySm" style={{ color: tokens.color.onPrimary + "D9" }} numberOfLines={1}>
+          <Text variant="bodyMd" color="textMuted" numberOfLines={1}>
             {user?.email ?? "Speak an expense or snap a receipt."}
           </Text>
         </View>
@@ -592,9 +592,10 @@ const makeStyles = (t: ThemeTokens) => ({
   heroCard: {
     borderRadius: t.radii.xl,
     padding: t.spacing.lg,
-    gap: t.spacing.sm,
-    backgroundColor: t.color.primary,
-    ...t.shadow.medium,
+    gap: t.spacing.xs,
+    backgroundColor: t.color.primaryMuted,
+    borderWidth: 1,
+    borderColor: t.color.primary + "26",
     overflow: "hidden" as const,
   },
   heroTopRow: { flexDirection: "row" as const, justifyContent: "space-between" as const, alignItems: "center" as const, gap: t.spacing.md },
