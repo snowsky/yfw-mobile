@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { ActivityIndicator, Dimensions, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Dimensions, Pressable, View } from "react-native";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -8,6 +8,9 @@ import { useRouter } from "expo-router";
 import { expensesApi } from "../src/lib/api";
 import { useAuth } from "../src/providers/AuthProvider";
 import { SwipeCard, type SwipeCardHandle, type SwipeCardItem } from "../src/components/SwipeCard";
+import { useTheme, useThemedStyles } from "../src/theme";
+import { ThemeTokens } from "../src/theme/types";
+import { Text, Button } from "../src/components/ui";
 
 const { width: SCREEN_W } = Dimensions.get("window");
 
@@ -25,6 +28,8 @@ export default function ReviewScreen() {
   const { accessToken } = useAuth();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { tokens } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const topCardRef = useRef<SwipeCardHandle>(null);
 
   const query = useQuery({
@@ -100,8 +105,8 @@ export default function ReviewScreen() {
     return (
       <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
         <View style={styles.centerWrap}>
-          <ActivityIndicator color="#059669" />
-          <Text style={styles.centerText}>Loading review queue…</Text>
+          <ActivityIndicator color={tokens.color.primary} />
+          <Text variant="bodyMd" color="textMuted">Loading review queue…</Text>
         </View>
       </SafeAreaView>
     );
@@ -111,11 +116,9 @@ export default function ReviewScreen() {
     return (
       <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
         <View style={styles.centerWrap}>
-          <Feather name="check-circle" size={44} color="#059669" />
-          <Text style={styles.doneTitle}>Nothing to review</Text>
-          <Pressable onPress={() => router.back()} style={[styles.btn, styles.btnPrimary]}>
-            <Text style={styles.btnPrimaryText}>Back to inbox</Text>
-          </Pressable>
+          <Feather name="check-circle" size={44} color={tokens.color.primary} />
+          <Text variant="headingXl">Nothing to review</Text>
+          <Button label="Back to inbox" onPress={() => router.back()} />
         </View>
       </SafeAreaView>
     );
@@ -130,9 +133,9 @@ export default function ReviewScreen() {
           accessibilityRole="button"
           accessibilityLabel="Close review"
         >
-          <Feather name="x" size={26} color="#0f172a" />
+          <Feather name="x" size={26} color={tokens.color.text} />
         </Pressable>
-        <Text style={styles.progress}>
+        <Text variant="headingSm">
           {Math.min(index + 1, total)} of {total}
         </Text>
         <View style={{ width: 26 }} />
@@ -140,43 +143,28 @@ export default function ReviewScreen() {
 
       {commitError ? (
         <View style={styles.errorBanner}>
-          <Text style={styles.errorText}>{commitError}</Text>
+          <Text variant="bodyMd" style={{ color: tokens.color.danger }}>{commitError}</Text>
         </View>
       ) : null}
 
       {isDone ? (
         <View style={styles.centerWrap}>
           <View style={styles.doneIconCircle}>
-            <Feather name="check-circle" size={48} color="#059669" />
+            <Feather name="check-circle" size={48} color={tokens.color.primary} />
           </View>
-          <Text style={styles.doneTitle}>All caught up</Text>
-          <Text style={styles.doneSummary}>
+          <Text variant="headingXl">All caught up</Text>
+          <Text variant="bodyLg" color="textMuted" center>
             Reviewed {decisions.length} · {approvedCount} approved, {rejectedCount} rejected
           </Text>
           <View style={styles.doneActions}>
-            <Pressable
+            <Button
+              label="Undo"
+              variant="outline"
               onPress={handleUndo}
               disabled={decisions.length === 0}
-              accessibilityRole="button"
-              accessibilityLabel="Undo last decision"
-              style={[styles.btn, styles.btnGhost, decisions.length === 0 && styles.btnDisabled]}
-            >
-              <Feather name="rotate-ccw" size={18} color="#0f172a" />
-              <Text style={styles.btnGhostText}>Undo</Text>
-            </Pressable>
-            <Pressable
-              onPress={commitAndExit}
-              disabled={committing}
-              accessibilityRole="button"
-              accessibilityLabel="Done"
-              style={[styles.btn, styles.btnPrimary, committing && styles.btnDisabled]}
-            >
-              {committing ? (
-                <ActivityIndicator color="#ffffff" />
-              ) : (
-                <Text style={styles.btnPrimaryText}>Done</Text>
-              )}
-            </Pressable>
+              leftIcon={<Feather name="rotate-ccw" size={18} color={tokens.color.primary} />}
+            />
+            <Button label="Done" onPress={commitAndExit} loading={committing} />
           </View>
         </View>
       ) : (
@@ -184,10 +172,10 @@ export default function ReviewScreen() {
           <View style={styles.stack}>
             {index + 1 < total ? (
               <View style={styles.peek} pointerEvents="none">
-                <Text style={styles.peekAmount} numberOfLines={1}>
+                <Text variant="headingLg" color="textSubtle" numberOfLines={1}>
                   {formatMoney(deck[index + 1].amount, deck[index + 1].currency)}
                 </Text>
-                <Text style={styles.peekVendor} numberOfLines={1}>
+                <Text variant="bodyLg" color="textSubtle" numberOfLines={1}>
                   {deck[index + 1].vendor ?? "Unknown vendor"}
                 </Text>
               </View>
@@ -208,7 +196,7 @@ export default function ReviewScreen() {
               accessibilityLabel="Reject"
               style={[styles.circleBtn, styles.rejectBtn]}
             >
-              <Feather name="x" size={26} color="#dc2626" />
+              <Feather name="x" size={26} color={tokens.color.danger} />
             </Pressable>
             <Pressable
               onPress={handleUndo}
@@ -217,7 +205,7 @@ export default function ReviewScreen() {
               accessibilityLabel="Undo last decision"
               style={[styles.circleBtnSm, decisions.length === 0 && styles.btnDisabled]}
             >
-              <Feather name="rotate-ccw" size={20} color="#0f172a" />
+              <Feather name="rotate-ccw" size={20} color={tokens.color.text} />
             </Pressable>
             <Pressable
               onPress={() => topCardRef.current?.swipe("approve")}
@@ -225,7 +213,7 @@ export default function ReviewScreen() {
               accessibilityLabel="Approve"
               style={[styles.circleBtn, styles.approveBtn]}
             >
-              <Feather name="check" size={26} color="#059669" />
+              <Feather name="check" size={26} color={tokens.color.success} />
             </Pressable>
           </View>
         </>
@@ -234,103 +222,73 @@ export default function ReviewScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#F8FAFC" },
+const makeStyles = (t: ThemeTokens) => ({
+  safe: { flex: 1, backgroundColor: t.color.background },
   topBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    justifyContent: "space-between" as const,
+    paddingHorizontal: t.spacing.xl,
+    paddingVertical: t.spacing.md,
   },
-  progress: { fontFamily: "Outfit_700Bold", fontSize: 16, color: "#0f172a" },
-  centerWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, padding: 24 },
+  centerWrap: { flex: 1, alignItems: "center" as const, justifyContent: "center" as const, gap: t.spacing.md, padding: t.spacing.xl },
   doneIconCircle: {
     width: 96,
     height: 96,
     borderRadius: 48,
-    backgroundColor: "rgba(5, 150, 105, 0.06)",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "rgba(5, 150, 105, 0.12)",
-    marginBottom: 8,
+    backgroundColor: t.color.primaryMuted,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+    marginBottom: t.spacing.sm,
   },
-  centerText: { fontFamily: "Outfit_500Medium", fontSize: 14, color: "#64748b" },
-  stack: { flex: 1, alignItems: "center", justifyContent: "center" },
+  stack: { flex: 1, alignItems: "center" as const, justifyContent: "center" as const },
   peek: {
-    position: "absolute",
+    position: "absolute" as const,
     width: SCREEN_W - 64,
     minHeight: 340,
-    borderRadius: 24,
-    backgroundColor: "#ffffff",
-    padding: 24,
-    justifyContent: "center",
-    gap: 8,
+    borderRadius: t.radii["2xl"],
+    backgroundColor: t.color.surface,
+    padding: t.spacing.xl,
+    justifyContent: "center" as const,
+    gap: t.spacing.sm,
     transform: [{ scale: 0.94 }, { translateY: 18 }],
-    shadowColor: "#0f172a",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 3,
+    ...t.shadow.soft,
   },
-  peekAmount: { fontFamily: "Outfit_700Bold", fontSize: 28, color: "#94a3b8" },
-  peekVendor: { fontFamily: "Outfit_500Medium", fontSize: 16, color: "#cbd5e1" },
   actions: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 24,
-    paddingVertical: 24,
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+    gap: t.spacing.xl,
+    paddingVertical: t.spacing.xl,
   },
   circleBtn: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#ffffff",
-    shadowColor: "#0f172a",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    elevation: 3,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+    backgroundColor: t.color.surface,
+    ...t.shadow.medium,
   },
-  rejectBtn: { borderWidth: 2, borderColor: "#fecaca" },
-  approveBtn: { borderWidth: 2, borderColor: "#bbf7d0" },
+  rejectBtn: { borderWidth: 2, borderColor: t.color.danger + "55" },
+  approveBtn: { borderWidth: 2, borderColor: t.color.success + "55" },
   circleBtnSm: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#ffffff",
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+    backgroundColor: t.color.surface,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: t.color.border,
   },
   btnDisabled: { opacity: 0.4 },
-  doneTitle: { fontFamily: "Outfit_700Bold", fontSize: 24, color: "#0f172a" },
-  doneSummary: { fontFamily: "Outfit_500Medium", fontSize: 15, color: "#64748b", textAlign: "center" },
-  doneActions: { flexDirection: "row", gap: 12, marginTop: 16 },
-  btn: {
-    minHeight: 50,
-    paddingHorizontal: 24,
-    borderRadius: 14,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-  },
-  btnPrimary: { backgroundColor: "#059669" },
-  btnPrimaryText: { fontFamily: "Outfit_700Bold", fontSize: 16, color: "#ffffff" },
-  btnGhost: { backgroundColor: "#ffffff", borderWidth: 1, borderColor: "#e2e8f0" },
-  btnGhostText: { fontFamily: "Outfit_700Bold", fontSize: 16, color: "#0f172a" },
+  doneActions: { flexDirection: "row" as const, gap: t.spacing.md, marginTop: t.spacing.lg },
   errorBanner: {
-    marginHorizontal: 20,
-    marginBottom: 8,
-    backgroundColor: "#fef2f2",
-    borderRadius: 12,
-    padding: 12,
+    marginHorizontal: t.spacing.xl,
+    marginBottom: t.spacing.sm,
+    backgroundColor: t.color.danger + "1A",
+    borderRadius: t.radii.md,
+    padding: t.spacing.md,
   },
-  errorText: { fontFamily: "Outfit_500Medium", fontSize: 14, color: "#b91c1c" },
 });

@@ -4,9 +4,6 @@ import {
   Alert,
   Pressable,
   ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
   View,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -15,6 +12,9 @@ import { Feather } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { expensesApi, type Expense, type ExpenseUpdate } from "../../src/lib/api";
+import { useTheme, useThemedStyles } from "../../src/theme";
+import { ThemeTokens, ColorTokens } from "../../src/theme/types";
+import { Input, Button, Text } from "../../src/components/ui";
 
 function formatMoney(amount: number | null | undefined, currency = "USD") {
   return new Intl.NumberFormat("en-US", {
@@ -64,9 +64,19 @@ function diffPatch(form: FormState, expense: Expense): ExpenseUpdate {
   return patch;
 }
 
+// Map a review status to a semantic color token key for the status pill.
+function reviewStatusKey(status: string): keyof ColorTokens {
+  if (status === "approved") return "success";
+  if (status === "rejected" || status === "failed") return "danger";
+  if (status === "pending") return "info";
+  return "textMuted";
+}
+
 export default function ExpenseDetailScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { tokens } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const { id: idParam } = useLocalSearchParams<{ id: string }>();
   const expenseId = Number(idParam);
 
@@ -78,7 +88,6 @@ export default function ExpenseDetailScreen() {
 
   const [form, setForm] = useState<FormState | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [focusedField, setFocusedField] = useState<string | null>(null);
 
   useEffect(() => {
     if (query.data) setForm(toForm(query.data));
@@ -164,6 +173,15 @@ export default function ExpenseDetailScreen() {
     );
   }
 
+  function StatusPill({ label, statusKey }: { label: string; statusKey: keyof ColorTokens }) {
+    const accent = tokens.color[statusKey];
+    return (
+      <View style={[styles.pill, { backgroundColor: accent + "1A" }]}>
+        <Text variant="caption" style={{ color: accent }}>{label}</Text>
+      </View>
+    );
+  }
+
   return (
     <SafeAreaView edges={["top"]} style={styles.safeArea}>
       <View style={styles.topBar}>
@@ -174,9 +192,9 @@ export default function ExpenseDetailScreen() {
           onPress={() => router.back()}
           style={styles.backBtn}
         >
-          <Feather name="chevron-left" size={22} color="#0F172A" />
+          <Feather name="chevron-left" size={22} color={tokens.color.text} />
         </Pressable>
-        <Text style={styles.topTitle}>Expense</Text>
+        <Text variant="headingMd">Expense</Text>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Delete expense"
@@ -185,7 +203,7 @@ export default function ExpenseDetailScreen() {
           disabled={anyMutating || !expense}
           style={[styles.iconBtn, (anyMutating || !expense) && styles.buttonDisabled]}
         >
-          <Feather name="trash-2" size={18} color="#dc2626" />
+          <Feather name="trash-2" size={18} color={tokens.color.danger} />
         </Pressable>
       </View>
 
@@ -194,204 +212,123 @@ export default function ExpenseDetailScreen() {
           <View style={styles.card}>
             {query.isError ? (
               <>
-                <Text style={styles.emptyTitle}>Could not load expense</Text>
-                <Text style={styles.emptyText}>
+                <Text variant="headingMd">Could not load expense</Text>
+                <Text variant="bodyMd" color="textMuted">
                   {query.error instanceof Error ? query.error.message : "Try again shortly."}
                 </Text>
-                <Pressable style={styles.retryButton} onPress={() => query.refetch()}>
-                  <Text style={styles.retryText}>Try again</Text>
-                </Pressable>
+                <Button label="Try again" size="sm" onPress={() => query.refetch()} style={{ alignSelf: "flex-start", marginTop: 4 }} />
               </>
             ) : (
               <View style={styles.loadingRow}>
-                <ActivityIndicator color="#059669" />
-                <Text style={styles.emptyText}>Loading expense…</Text>
+                <ActivityIndicator color={tokens.color.primary} />
+                <Text variant="bodyMd" color="textMuted">Loading expense…</Text>
               </View>
             )}
           </View>
         ) : (
           <>
             <View style={styles.heroCard}>
-              <Text style={styles.heroAmount}>{formatMoney(expense.amount, expense.currency)}</Text>
-              <Text style={styles.heroVendor}>{expense.vendor ?? "Unknown vendor"}</Text>
+              <Text variant="headingXl">{formatMoney(expense.amount, expense.currency)}</Text>
+              <Text variant="bodyLg" color="textMuted">{expense.vendor ?? "Unknown vendor"}</Text>
               <View style={styles.heroMetaRow}>
-                <Text style={styles.heroMeta}>{expense.category}</Text>
-                <Text style={styles.heroMeta}>·</Text>
-                <Text style={styles.heroMeta}>{formatDateLabel(expense.expense_date)}</Text>
+                <Text variant="bodySm" color="textMuted">{expense.category}</Text>
+                <Text variant="bodySm" color="textMuted">·</Text>
+                <Text variant="bodySm" color="textMuted">{formatDateLabel(expense.expense_date)}</Text>
               </View>
               <View style={styles.pillsRow}>
                 {expense.review_status ? (
-                  <View style={[styles.pill, pillStyleForReview(expense.review_status)]}>
-                    <Text style={styles.pillText}>review: {expense.review_status}</Text>
-                  </View>
+                  <StatusPill label={`review: ${expense.review_status}`} statusKey={reviewStatusKey(expense.review_status)} />
                 ) : null}
                 {expense.analysis_status ? (
-                  <View style={[styles.pill, styles.pillNeutral]}>
-                    <Text style={styles.pillText}>analysis: {expense.analysis_status}</Text>
-                  </View>
+                  <StatusPill label={`analysis: ${expense.analysis_status}`} statusKey="textMuted" />
                 ) : null}
                 {expense.attachments_count ? (
-                  <View style={[styles.pill, styles.pillNeutral]}>
-                    <Text style={styles.pillText}>
-                      {expense.attachments_count} attachment{expense.attachments_count === 1 ? "" : "s"}
-                    </Text>
-                  </View>
+                  <StatusPill
+                    label={`${expense.attachments_count} attachment${expense.attachments_count === 1 ? "" : "s"}`}
+                    statusKey="textMuted"
+                  />
                 ) : null}
               </View>
             </View>
 
             <View style={styles.card}>
-              <Text style={styles.sectionTitle}>Edit Details</Text>
+              <Text variant="headingMd">Edit Details</Text>
 
-              <Field label="Amount">
-                <TextInput
-                  value={form.amount}
-                  onChangeText={(v) => setForm({ ...form, amount: v })}
-                  onFocus={() => setFocusedField("amount")}
-                  onBlur={() => setFocusedField(null)}
-                  keyboardType="decimal-pad"
-                  placeholder="0.00"
-                  placeholderTextColor="#94a3b8"
-                  style={[styles.input, focusedField === "amount" && styles.inputFocused]}
-                />
-              </Field>
+              <Input
+                label="Amount"
+                value={form.amount}
+                onChangeText={(v) => setForm({ ...form, amount: v })}
+                keyboardType="decimal-pad"
+                placeholder="0.00"
+              />
+              <Input
+                label="Vendor"
+                value={form.vendor}
+                onChangeText={(v) => setForm({ ...form, vendor: v })}
+                placeholder="Vendor name"
+              />
+              <Input
+                label="Category"
+                value={form.category}
+                onChangeText={(v) => setForm({ ...form, category: v })}
+                placeholder="Category"
+              />
+              <Input
+                label="Date (YYYY-MM-DD)"
+                value={form.expense_date}
+                onChangeText={(v) => setForm({ ...form, expense_date: v })}
+                placeholder="2025-04-23"
+                autoCapitalize="none"
+              />
+              <Input
+                label="Notes"
+                value={form.notes}
+                onChangeText={(v) => setForm({ ...form, notes: v })}
+                placeholder="Add a note"
+                multiline
+                numberOfLines={3}
+                style={styles.textarea}
+              />
 
-              <Field label="Vendor">
-                <TextInput
-                  value={form.vendor}
-                  onChangeText={(v) => setForm({ ...form, vendor: v })}
-                  onFocus={() => setFocusedField("vendor")}
-                  onBlur={() => setFocusedField(null)}
-                  placeholder="Vendor name"
-                  placeholderTextColor="#94a3b8"
-                  style={[styles.input, focusedField === "vendor" && styles.inputFocused]}
-                />
-              </Field>
-
-              <Field label="Category">
-                <TextInput
-                  value={form.category}
-                  onChangeText={(v) => setForm({ ...form, category: v })}
-                  onFocus={() => setFocusedField("category")}
-                  onBlur={() => setFocusedField(null)}
-                  placeholder="Category"
-                  placeholderTextColor="#94a3b8"
-                  style={[styles.input, focusedField === "category" && styles.inputFocused]}
-                />
-              </Field>
-
-              <Field label="Date (YYYY-MM-DD)">
-                <TextInput
-                  value={form.expense_date}
-                  onChangeText={(v) => setForm({ ...form, expense_date: v })}
-                  onFocus={() => setFocusedField("date")}
-                  onBlur={() => setFocusedField(null)}
-                  placeholder="2025-04-23"
-                  placeholderTextColor="#94a3b8"
-                  autoCapitalize="none"
-                  style={[styles.input, focusedField === "date" && styles.inputFocused]}
-                />
-              </Field>
-
-              <Field label="Notes">
-                <TextInput
-                  value={form.notes}
-                  onChangeText={(v) => setForm({ ...form, notes: v })}
-                  onFocus={() => setFocusedField("notes")}
-                  onBlur={() => setFocusedField(null)}
-                  placeholder="Add a note"
-                  placeholderTextColor="#94a3b8"
-                  multiline
-                  numberOfLines={3}
-                  style={[styles.input, styles.textarea, focusedField === "notes" && styles.inputFocused]}
-                />
-              </Field>
-
-              {actionError ? <Text style={styles.errorText}>{actionError}</Text> : null}
+              {actionError ? <Text variant="bodySm" color="danger">{actionError}</Text> : null}
 
               <View style={styles.inlineRow}>
-                <Pressable
-                  accessibilityRole="button"
-                  style={[styles.primaryBtn, (!dirty || anyMutating) && styles.buttonDisabled]}
+                <Button
+                  label="Save changes"
                   onPress={handleSave}
+                  loading={saveMutation.isPending}
                   disabled={!dirty || anyMutating}
-                >
-                  {saveMutation.isPending ? (
-                    <ActivityIndicator color="#ffffff" size="small" />
-                  ) : (
-                    <Text style={styles.primaryBtnText}>Save changes</Text>
-                  )}
-                </Pressable>
+                />
                 {dirty ? (
-                  <Pressable
-                    accessibilityRole="button"
-                    style={[styles.outlineBtn, anyMutating && styles.buttonDisabled]}
-                    onPress={() => setForm(toForm(expense))}
-                    disabled={anyMutating}
-                  >
-                    <Text style={styles.outlineBtnText}>Discard</Text>
-                  </Pressable>
+                  <Button label="Discard" variant="outline" onPress={() => setForm(toForm(expense))} disabled={anyMutating} />
                 ) : null}
               </View>
             </View>
 
             {expense.attachments_count ? (
               <View style={styles.card}>
-                <Text style={styles.sectionTitle}>Linked Receipt</Text>
+                <Text variant="headingMd">Linked Receipt</Text>
                 <View style={styles.attachmentRow}>
                   <View style={styles.attachmentIconCircle}>
-                    <Feather name="file-text" size={20} color="#059669" />
+                    <Feather name="file-text" size={20} color={tokens.color.primary} />
                   </View>
-                  <View style={styles.attachmentInfo}>
-                    <Text style={styles.attachmentName}>Receipt attachment ({expense.attachments_count})</Text>
-                    <Text style={styles.attachmentMeta}>Scan processed and stored in database</Text>
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <Text variant="bodyMd" style={{ fontFamily: "Outfit_600SemiBold" }}>Receipt attachment ({expense.attachments_count})</Text>
+                    <Text variant="bodySm" color="textMuted">Scan processed and stored in database</Text>
                   </View>
                 </View>
               </View>
             ) : null}
 
             <View style={styles.card}>
-              <Text style={styles.sectionTitle}>Review</Text>
+              <Text variant="headingMd">Review</Text>
               {expense.review_status === "pending" ? (
                 <View style={styles.inlineRow}>
-                  <Pressable
-                    accessibilityRole="button"
-                    style={[styles.primaryBtn, anyMutating && styles.buttonDisabled]}
-                    onPress={() => approveMutation.mutate()}
-                    disabled={anyMutating}
-                  >
-                    {approveMutation.isPending ? (
-                      <ActivityIndicator color="#ffffff" size="small" />
-                    ) : (
-                      <Text style={styles.primaryBtnText}>Approve</Text>
-                    )}
-                  </Pressable>
-                  <Pressable
-                    accessibilityRole="button"
-                    style={[styles.dangerBtn, anyMutating && styles.buttonDisabled]}
-                    onPress={() => rejectMutation.mutate()}
-                    disabled={anyMutating}
-                  >
-                    {rejectMutation.isPending ? (
-                      <ActivityIndicator color="#ffffff" size="small" />
-                    ) : (
-                      <Text style={styles.primaryBtnText}>Reject</Text>
-                    )}
-                  </Pressable>
+                  <Button label="Approve" onPress={() => approveMutation.mutate()} loading={approveMutation.isPending} disabled={anyMutating} />
+                  <Button label="Reject" variant="destructive" onPress={() => rejectMutation.mutate()} loading={rejectMutation.isPending} disabled={anyMutating} />
                 </View>
               ) : (
-                <Pressable
-                  accessibilityRole="button"
-                  style={[styles.primaryBtn, anyMutating && styles.buttonDisabled]}
-                  onPress={() => submitMutation.mutate()}
-                  disabled={anyMutating}
-                >
-                  {submitMutation.isPending ? (
-                    <ActivityIndicator color="#ffffff" size="small" />
-                  ) : (
-                    <Text style={styles.primaryBtnText}>Submit for review</Text>
-                  )}
-                </Pressable>
+                <Button label="Submit for review" onPress={() => submitMutation.mutate()} loading={submitMutation.isPending} disabled={anyMutating} />
               )}
             </View>
           </>
@@ -401,152 +338,66 @@ export default function ExpenseDetailScreen() {
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <View style={styles.fieldGroup}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      {children}
-    </View>
-  );
-}
-
-function pillStyleForReview(status: string) {
-  if (status === "approved") return styles.pillSuccess;
-  if (status === "rejected" || status === "failed") return styles.pillDanger;
-  if (status === "pending") return styles.pillInfo;
-  return styles.pillNeutral;
-}
-
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: "#F8FAFC" },
-  screen: { flex: 1, backgroundColor: "#F8FAFC" },
-  content: { padding: 16, gap: 16, paddingBottom: 40 },
+const makeStyles = (t: ThemeTokens) => ({
+  safeArea: { flex: 1, backgroundColor: t.color.background },
+  screen: { flex: 1, backgroundColor: t.color.background },
+  content: { padding: t.spacing.lg, gap: t.spacing.lg, paddingBottom: 40 },
 
   topBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: "#F8FAFC",
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    justifyContent: "space-between" as const,
+    paddingHorizontal: t.spacing.md,
+    paddingVertical: t.spacing.sm,
+    backgroundColor: t.color.background,
   },
   backBtn: {
-    width: 40, height: 40, borderRadius: 12,
-    alignItems: "center", justifyContent: "center",
-    backgroundColor: "#ffffff", borderWidth: 1, borderColor: "#e2e8f0",
+    width: 40, height: 40, borderRadius: t.radii.md,
+    alignItems: "center" as const, justifyContent: "center" as const,
+    backgroundColor: t.color.surface, borderWidth: 1, borderColor: t.color.border,
   },
-  topTitle: { fontFamily: "Outfit_700Bold", fontSize: 18, color: "#0F172A" },
   iconBtn: {
-    width: 40, height: 40, borderRadius: 12,
-    alignItems: "center", justifyContent: "center",
-    backgroundColor: "#fef2f2", borderWidth: 1, borderColor: "#fecaca",
+    width: 40, height: 40, borderRadius: t.radii.md,
+    alignItems: "center" as const, justifyContent: "center" as const,
+    backgroundColor: t.color.danger + "1A", borderWidth: 1, borderColor: t.color.danger + "33",
   },
   buttonDisabled: { opacity: 0.55 },
 
   heroCard: {
-    borderRadius: 18, padding: 18, gap: 10, backgroundColor: "#ffffff",
-    shadowColor: "#cbd5e1", shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2, shadowRadius: 8, elevation: 2,
+    borderRadius: t.radii.xl, padding: t.spacing.lg, gap: t.spacing.sm, backgroundColor: t.color.surface,
+    ...t.shadow.soft,
   },
-  heroAmount: { fontFamily: "Outfit_700Bold", fontSize: 32, color: "#0F172A" },
-  heroVendor: { fontFamily: "Outfit_500Medium", fontSize: 16, color: "#475569" },
-  heroMetaRow: { flexDirection: "row", gap: 8, alignItems: "center" },
-  heroMeta: { fontFamily: "Outfit_500Medium", fontSize: 13, color: "#64748B" },
+  heroMetaRow: { flexDirection: "row" as const, gap: t.spacing.sm, alignItems: "center" as const },
 
-  pillsRow: { flexDirection: "row", gap: 6, flexWrap: "wrap", marginTop: 4 },
-  pill: { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 },
-  pillNeutral: { backgroundColor: "#f1f5f9" },
-  pillSuccess: { backgroundColor: "#ecfdf5" },
-  pillDanger: { backgroundColor: "#fef2f2" },
-  pillInfo: { backgroundColor: "#eff6ff" },
-  pillText: { fontFamily: "Outfit_600SemiBold", fontSize: 11, color: "#0F172A" },
+  pillsRow: { flexDirection: "row" as const, gap: 6, flexWrap: "wrap" as const, marginTop: 4 },
+  pill: { borderRadius: t.radii.full, paddingHorizontal: t.spacing.sm, paddingVertical: 5 },
 
   card: {
-    borderRadius: 18, padding: 18, gap: 14, backgroundColor: "#ffffff",
-    shadowColor: "#cbd5e1", shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2, shadowRadius: 8, elevation: 2,
+    borderRadius: t.radii.xl, padding: t.spacing.lg, gap: t.spacing.md, backgroundColor: t.color.surface,
+    ...t.shadow.soft,
   },
-  sectionTitle: { fontFamily: "Outfit_700Bold", fontSize: 18, color: "#0F172A" },
 
-  fieldGroup: { gap: 6 },
-  fieldLabel: { fontFamily: "Outfit_500Medium", fontSize: 13, color: "#64748B" },
-  input: {
-    minHeight: 46,
-    borderWidth: 1, borderColor: "#e2e8f0", borderRadius: 12,
-    paddingHorizontal: 14, paddingVertical: 10, backgroundColor: "#f8fafc",
-    color: "#0F172A", fontFamily: "Outfit_400Regular", fontSize: 15,
-  },
-  inputFocused: {
-    borderColor: "#10b981",
-    backgroundColor: "#ffffff",
-    shadowColor: "#10b981",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 1,
-  },
-  textarea: { minHeight: 88, textAlignVertical: "top", paddingTop: 12 },
+  textarea: { minHeight: 88, textAlignVertical: "top" as const, paddingTop: 12 },
 
   attachmentRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#F8FAFC",
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    backgroundColor: t.color.surfaceMuted,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
-    borderRadius: 14,
-    padding: 12,
+    borderColor: t.color.border,
+    borderRadius: t.radii.lg,
+    padding: t.spacing.md,
   },
   attachmentIconCircle: {
     width: 44,
     height: 44,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(5, 150, 105, 0.08)",
-    marginRight: 12,
-  },
-  attachmentInfo: {
-    flex: 1,
-    gap: 2,
-  },
-  attachmentName: {
-    fontFamily: "Outfit_600SemiBold",
-    fontSize: 14,
-    color: "#0f172a",
-  },
-  attachmentMeta: {
-    fontFamily: "Outfit_400Regular",
-    fontSize: 12,
-    color: "#64748b",
+    borderRadius: t.radii.md,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+    backgroundColor: t.color.primaryMuted,
+    marginRight: t.spacing.md,
   },
 
-  inlineRow: { flexDirection: "row", gap: 10, flexWrap: "wrap" },
-  primaryBtn: {
-    minHeight: 46, paddingHorizontal: 18, borderRadius: 14,
-    alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 8,
-    backgroundColor: "#059669",
-  },
-  primaryBtnText: { color: "#ffffff", fontFamily: "Outfit_700Bold", fontSize: 15 },
-  outlineBtn: {
-    minHeight: 46, paddingHorizontal: 18, borderRadius: 14,
-    alignItems: "center", justifyContent: "center",
-    borderWidth: 1, borderColor: "#e2e8f0", backgroundColor: "#ffffff",
-  },
-  outlineBtnText: { color: "#0F172A", fontFamily: "Outfit_700Bold", fontSize: 15 },
-  dangerBtn: {
-    minHeight: 46, paddingHorizontal: 18, borderRadius: 14,
-    alignItems: "center", justifyContent: "center",
-    backgroundColor: "#dc2626",
-  },
-
-  errorText: { fontFamily: "Outfit_400Regular", fontSize: 13, color: "#ef4444", lineHeight: 18 },
-
-  emptyTitle: { fontFamily: "Outfit_700Bold", fontSize: 18, color: "#0F172A" },
-  emptyText: { fontFamily: "Outfit_400Regular", fontSize: 14, lineHeight: 20, color: "#64748B" },
-  loadingRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-  retryButton: {
-    alignSelf: "flex-start", minHeight: 42, paddingHorizontal: 16, borderRadius: 14,
-    alignItems: "center", justifyContent: "center", backgroundColor: "#059669", marginTop: 8,
-  },
-  retryText: { fontFamily: "Outfit_700Bold", fontSize: 14, color: "#ffffff" },
+  inlineRow: { flexDirection: "row" as const, gap: t.spacing.sm, flexWrap: "wrap" as const },
+  loadingRow: { flexDirection: "row" as const, alignItems: "center" as const, gap: t.spacing.sm },
 });
