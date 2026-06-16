@@ -19,3 +19,6 @@ export type { MetricCardProps } from "./MetricCard";
 export { FilterChip } from "./FilterChip";
 export type { FilterChipProps } from "./FilterChip";
 export { Divider } from "./Divider";
+export { SegmentedControl } from "./SegmentedControl";
+export type { SegmentedControlProps, SegmentOption } from "./SegmentedControl";
+export { Avatar } from "./Avatar";
