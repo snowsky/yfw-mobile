@@ -334,10 +334,11 @@ export default function InboxScreen() {
 const makeStyles = (t: ThemeTokens) => ({
   safeArea: { flex: 1, backgroundColor: t.color.background },
   screen: { flex: 1, backgroundColor: t.color.background },
-  content: { padding: t.spacing.lg, gap: t.spacing.lg, paddingBottom: 120 },
+  content: { padding: t.spacing.lg, gap: t.spacing.sm, paddingBottom: 120 },
   headerCard: {
     borderRadius: t.radii.xl,
     padding: t.spacing.lg,
+    marginBottom: t.spacing.xs,
     gap: t.spacing.md,
     backgroundColor: t.color.surface,
     ...t.shadow.soft,
@@ -387,13 +388,14 @@ const makeStyles = (t: ThemeTokens) => ({
     justifyContent: "center" as const,
   },
   cardColumn: {
-    borderRadius: t.radii.xl,
-    padding: t.spacing.lg,
-    gap: t.spacing.md,
+    borderRadius: t.radii.lg,
+    padding: t.spacing.md,
+    gap: t.spacing.sm,
     backgroundColor: t.color.surface,
-    ...t.shadow.soft,
+    borderWidth: 1,
+    borderColor: t.color.border,
   },
-  cardPressed: { opacity: 0.7 },
+  cardPressed: { backgroundColor: t.color.surfaceMuted },
   actionRow: { flexDirection: "row" as const, gap: t.spacing.sm, marginTop: 4 },
   approveBtn: {
     flex: 1,
