@@ -13,11 +13,17 @@ import {
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { AuthProvider } from "../src/providers/AuthProvider";
+import { ThemeProvider, useTheme } from "../src/theme";
 
 const queryClient = new QueryClient();
 
 // Prevent auto hide while fonts are loading
 SplashScreen.preventAutoHideAsync();
+
+function ThemedStatusBar() {
+  const { scheme } = useTheme();
+  return <StatusBar style={scheme === "dark" ? "light" : "dark"} />;
+}
 
 export default function RootLayout() {
   const [fontsLoaded, error] = useFonts({
@@ -40,12 +46,14 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <StatusBar style="dark" />
-          <Stack screenOptions={{ headerShown: false }} />
-        </AuthProvider>
-      </QueryClientProvider>
+      <ThemeProvider>
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>
+            <ThemedStatusBar />
+            <Stack screenOptions={{ headerShown: false }} />
+          </AuthProvider>
+        </QueryClientProvider>
+      </ThemeProvider>
     </GestureHandlerRootView>
   );
 }
