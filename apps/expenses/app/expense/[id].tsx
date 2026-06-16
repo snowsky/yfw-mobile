@@ -78,6 +78,7 @@ export default function ExpenseDetailScreen() {
 
   const [form, setForm] = useState<FormState | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [focusedField, setFocusedField] = useState<string | null>(null);
 
   useEffect(() => {
     if (query.data) setForm(toForm(query.data));
@@ -240,16 +241,18 @@ export default function ExpenseDetailScreen() {
             </View>
 
             <View style={styles.card}>
-              <Text style={styles.sectionTitle}>Edit</Text>
+              <Text style={styles.sectionTitle}>Edit Details</Text>
 
               <Field label="Amount">
                 <TextInput
                   value={form.amount}
                   onChangeText={(v) => setForm({ ...form, amount: v })}
+                  onFocus={() => setFocusedField("amount")}
+                  onBlur={() => setFocusedField(null)}
                   keyboardType="decimal-pad"
                   placeholder="0.00"
                   placeholderTextColor="#94a3b8"
-                  style={styles.input}
+                  style={[styles.input, focusedField === "amount" && styles.inputFocused]}
                 />
               </Field>
 
@@ -257,9 +260,11 @@ export default function ExpenseDetailScreen() {
                 <TextInput
                   value={form.vendor}
                   onChangeText={(v) => setForm({ ...form, vendor: v })}
+                  onFocus={() => setFocusedField("vendor")}
+                  onBlur={() => setFocusedField(null)}
                   placeholder="Vendor name"
                   placeholderTextColor="#94a3b8"
-                  style={styles.input}
+                  style={[styles.input, focusedField === "vendor" && styles.inputFocused]}
                 />
               </Field>
 
@@ -267,9 +272,11 @@ export default function ExpenseDetailScreen() {
                 <TextInput
                   value={form.category}
                   onChangeText={(v) => setForm({ ...form, category: v })}
+                  onFocus={() => setFocusedField("category")}
+                  onBlur={() => setFocusedField(null)}
                   placeholder="Category"
                   placeholderTextColor="#94a3b8"
-                  style={styles.input}
+                  style={[styles.input, focusedField === "category" && styles.inputFocused]}
                 />
               </Field>
 
@@ -277,10 +284,12 @@ export default function ExpenseDetailScreen() {
                 <TextInput
                   value={form.expense_date}
                   onChangeText={(v) => setForm({ ...form, expense_date: v })}
+                  onFocus={() => setFocusedField("date")}
+                  onBlur={() => setFocusedField(null)}
                   placeholder="2025-04-23"
                   placeholderTextColor="#94a3b8"
                   autoCapitalize="none"
-                  style={styles.input}
+                  style={[styles.input, focusedField === "date" && styles.inputFocused]}
                 />
               </Field>
 
@@ -288,11 +297,13 @@ export default function ExpenseDetailScreen() {
                 <TextInput
                   value={form.notes}
                   onChangeText={(v) => setForm({ ...form, notes: v })}
+                  onFocus={() => setFocusedField("notes")}
+                  onBlur={() => setFocusedField(null)}
                   placeholder="Add a note"
                   placeholderTextColor="#94a3b8"
                   multiline
                   numberOfLines={3}
-                  style={[styles.input, styles.textarea]}
+                  style={[styles.input, styles.textarea, focusedField === "notes" && styles.inputFocused]}
                 />
               </Field>
 
@@ -323,6 +334,21 @@ export default function ExpenseDetailScreen() {
                 ) : null}
               </View>
             </View>
+
+            {expense.attachments_count ? (
+              <View style={styles.card}>
+                <Text style={styles.sectionTitle}>Linked Receipt</Text>
+                <View style={styles.attachmentRow}>
+                  <View style={styles.attachmentIconCircle}>
+                    <Feather name="file-text" size={20} color="#059669" />
+                  </View>
+                  <View style={styles.attachmentInfo}>
+                    <Text style={styles.attachmentName}>Receipt attachment ({expense.attachments_count})</Text>
+                    <Text style={styles.attachmentMeta}>Scan processed and stored in database</Text>
+                  </View>
+                </View>
+              </View>
+            ) : null}
 
             <View style={styles.card}>
               <Text style={styles.sectionTitle}>Review</Text>
@@ -450,7 +476,49 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14, paddingVertical: 10, backgroundColor: "#f8fafc",
     color: "#0F172A", fontFamily: "Outfit_400Regular", fontSize: 15,
   },
+  inputFocused: {
+    borderColor: "#10b981",
+    backgroundColor: "#ffffff",
+    shadowColor: "#10b981",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 1,
+  },
   textarea: { minHeight: 88, textAlignVertical: "top", paddingTop: 12 },
+
+  attachmentRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    borderRadius: 14,
+    padding: 12,
+  },
+  attachmentIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(5, 150, 105, 0.08)",
+    marginRight: 12,
+  },
+  attachmentInfo: {
+    flex: 1,
+    gap: 2,
+  },
+  attachmentName: {
+    fontFamily: "Outfit_600SemiBold",
+    fontSize: 14,
+    color: "#0f172a",
+  },
+  attachmentMeta: {
+    fontFamily: "Outfit_400Regular",
+    fontSize: 12,
+    color: "#64748b",
+  },
 
   inlineRow: { flexDirection: "row", gap: 10, flexWrap: "wrap" },
   primaryBtn: {

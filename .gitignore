@@ -8,6 +8,10 @@ expo-env.d.ts
 node_modules
 .expo
 
+# Generated native projects (Expo CNG — regenerated via `expo prebuild`)
+apps/*/ios/
+apps/*/android/
+
 # Local dev convenience symlink to the sibling backend repo
 invoice_app
 

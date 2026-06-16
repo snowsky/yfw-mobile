@@ -7,21 +7,22 @@ import { useRouter } from "expo-router";
 
 import { expensesApi } from "../../src/lib/api";
 import { useAuth } from "../../src/providers/AuthProvider";
+import { SwipeableRow } from "../../src/components/SwipeableRow";
 
 function getInboxState(expense: { analysis_status?: string | null; review_status?: string | null }) {
   if (expense.analysis_status === "failed" || expense.review_status === "failed") {
-    return { label: "Needs attention", icon: "alert-circle", tone: "#dc2626", bg: "#fef2f2" };
+    return { label: "Needs attention", icon: "alert-circle", tone: "#dc2626", bg: "rgba(239, 68, 68, 0.06)", border: "rgba(239, 68, 68, 0.15)" };
   }
 
   if (expense.analysis_status === "processing" || expense.analysis_status === "queued" || expense.review_status === "pending") {
-    return { label: "Processing", icon: "clock", tone: "#0284c7", bg: "#eff6ff" };
+    return { label: "Processing", icon: "clock", tone: "#0284c7", bg: "rgba(2, 132, 199, 0.06)", border: "rgba(2, 132, 199, 0.15)" };
   }
 
   if (expense.review_status === "diff_found") {
-    return { label: "Review changes", icon: "edit-3", tone: "#d97706", bg: "#fffbeb" };
+    return { label: "Review changes", icon: "edit-3", tone: "#d97706", bg: "rgba(245, 158, 11, 0.06)", border: "rgba(245, 158, 11, 0.15)" };
   }
 
-  return { label: "Ready to review", icon: "check-circle", tone: "#059669", bg: "#ecfdf5" };
+  return { label: "Ready to review", icon: "check-circle", tone: "#059669", bg: "rgba(16, 185, 129, 0.06)", border: "rgba(16, 185, 129, 0.15)" };
 }
 
 function formatMoney(amount: number, currency = "USD") {
@@ -53,6 +54,19 @@ export default function InboxScreen() {
 
   const approveMutation = useMutation({
     mutationFn: (id: number) => expensesApi.acceptReview(id),
+    onMutate: async (id: number) => {
+      await queryClient.cancelQueries({ queryKey: ["expenses", "inbox"] });
+      const previous = queryClient.getQueryData(["expenses", "inbox"]);
+      queryClient.setQueryData(["expenses", "inbox"], (old: any) =>
+        old ? { ...old, expenses: old.expenses.filter((e: any) => e.id !== id) } : old
+      );
+      return { previous };
+    },
+    onError: (_err, _id, context: any) => {
+      if (context?.previous) {
+        queryClient.setQueryData(["expenses", "inbox"], context.previous);
+      }
+    },
     onSettled: () => {
       setPendingId(null);
       queryClient.invalidateQueries({ queryKey: ["expenses"] });
@@ -61,6 +75,19 @@ export default function InboxScreen() {
 
   const rejectMutation = useMutation({
     mutationFn: (id: number) => expensesApi.rejectReview(id),
+    onMutate: async (id: number) => {
+      await queryClient.cancelQueries({ queryKey: ["expenses", "inbox"] });
+      const previous = queryClient.getQueryData(["expenses", "inbox"]);
+      queryClient.setQueryData(["expenses", "inbox"], (old: any) =>
+        old ? { ...old, expenses: old.expenses.filter((e: any) => e.id !== id) } : old
+      );
+      return { previous };
+    },
+    onError: (_err, _id, context: any) => {
+      if (context?.previous) {
+        queryClient.setQueryData(["expenses", "inbox"], context.previous);
+      }
+    },
     onSettled: () => {
       setPendingId(null);
       queryClient.invalidateQueries({ queryKey: ["expenses"] });
@@ -115,23 +142,34 @@ export default function InboxScreen() {
             </Pressable>
           </View>
           <View style={styles.queueSummary}>
-            <View style={styles.queueSummaryItem}>
-              <Text style={styles.summaryValue}>{items.length}</Text>
+            <View style={[styles.queueSummaryItem, styles.summaryQueue]}>
+              <Text style={[styles.summaryValue, { color: "#6366f1" }]}>{items.length}</Text>
               <Text style={styles.summaryLabel}>In queue</Text>
             </View>
-            <View style={styles.queueSummaryItem}>
-              <Text style={styles.summaryValue}>{attentionCount}</Text>
-              <Text style={styles.summaryLabel}>Need attention</Text>
+            <View style={[styles.queueSummaryItem, styles.summaryAttention]}>
+              <Text style={[styles.summaryValue, { color: "#ef4444" }]}>{attentionCount}</Text>
+              <Text style={styles.summaryLabel}>Attention</Text>
             </View>
-            <View style={styles.queueSummaryItem}>
-              <Text style={styles.summaryValue}>{processingCount}</Text>
+            <View style={[styles.queueSummaryItem, styles.summaryProcessing]}>
+              <Text style={[styles.summaryValue, { color: "#f59e0b" }]}>{processingCount}</Text>
               <Text style={styles.summaryLabel}>Processing</Text>
             </View>
-            <View style={styles.queueSummaryItem}>
-              <Text style={styles.summaryValue}>{reviewCount}</Text>
+            <View style={[styles.queueSummaryItem, styles.summaryReview]}>
+              <Text style={[styles.summaryValue, { color: "#059669" }]}>{reviewCount}</Text>
               <Text style={styles.summaryLabel}>To review</Text>
             </View>
           </View>
+          {reviewCount > 0 ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Review ${reviewCount} ${reviewCount === 1 ? "expense" : "expenses"}`}
+              style={styles.reviewAllButton}
+              onPress={() => router.push("/review" as never)}
+            >
+              <Feather name="zap" size={16} color="#ffffff" />
+              <Text style={styles.reviewAllText}>Review {reviewCount}</Text>
+            </Pressable>
+          ) : null}
         </View>
 
         {query.isLoading ? (
@@ -149,8 +187,11 @@ export default function InboxScreen() {
             </Pressable>
           </View>
         ) : items.length === 0 ? (
-          <View style={styles.card}>
-            <Text style={styles.emptyTitle}>Nothing waiting right now.</Text>
+          <View style={[styles.card, styles.emptyCard]}>
+            <View style={styles.emptyIconCircle}>
+              <Feather name="inbox" size={36} color="#059669" />
+            </View>
+            <Text style={styles.emptyTitle}>Nothing waiting right now</Text>
             <Text style={styles.emptyText}>New receipt uploads and voice drafts will appear here as soon as they need review.</Text>
           </View>
         ) : (
@@ -160,13 +201,43 @@ export default function InboxScreen() {
             const isActing = pendingId === item.id;
 
             return (
-              <Pressable
+              <SwipeableRow
                 key={item.id}
-                accessibilityRole="button"
-                accessibilityLabel={`Open expense ${item.vendor ?? item.category}`}
-                onPress={() => router.push(`/expense/${item.id}` as never)}
-                style={({ pressed }) => [styles.cardColumn, pressed && styles.cardPressed]}
+                disabled={!isReviewable}
+                triggerOnOpen
+                leftAction={
+                  isReviewable
+                    ? {
+                        label: "Approve",
+                        icon: "check",
+                        color: "#059669",
+                        onTrigger: () => {
+                          setPendingId(item.id);
+                          approveMutation.mutate(item.id);
+                        },
+                      }
+                    : undefined
+                }
+                rightAction={
+                  isReviewable
+                    ? {
+                        label: "Reject",
+                        icon: "x",
+                        color: "#dc2626",
+                        onTrigger: () => {
+                          setPendingId(item.id);
+                          rejectMutation.mutate(item.id);
+                        },
+                      }
+                    : undefined
+                }
               >
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Open expense ${item.vendor ?? item.category}`}
+                  onPress={() => router.push(`/expense/${item.id}` as never)}
+                  style={({ pressed }) => [styles.cardColumn, pressed && styles.cardPressed]}
+                >
                 <View style={styles.cardTopRow}>
                   <View style={styles.cardMain}>
                     <Text style={styles.amount} numberOfLines={1} adjustsFontSizeToFit>
@@ -174,8 +245,8 @@ export default function InboxScreen() {
                     </Text>
                     <Text style={styles.vendor} numberOfLines={1}>{item.vendor ?? "Unknown vendor"}</Text>
                   </View>
-                  <View style={[styles.statusRow, { backgroundColor: state.bg }]}>
-                    <Feather name={state.icon as any} size={15} color={state.tone} />
+                  <View style={[styles.statusRow, { backgroundColor: state.bg, borderColor: state.border, borderWidth: 1 }]}>
+                    <Feather name={state.icon as any} size={13} color={state.tone} />
                     <Text style={[styles.statusText, { color: state.tone }]}>{state.label}</Text>
                   </View>
                 </View>
@@ -227,7 +298,8 @@ export default function InboxScreen() {
                     </Pressable>
                   </View>
                 ) : null}
-              </Pressable>
+                </Pressable>
+              </SwipeableRow>
             );
           })
         )}
@@ -239,7 +311,7 @@ export default function InboxScreen() {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: "#F8FAFC" },
   screen: { flex: 1, backgroundColor: "#F8FAFC" },
-  content: { padding: 16, gap: 16 },
+  content: { padding: 16, gap: 16, paddingBottom: 120 },
   headerCard: {
     borderRadius: 18,
     padding: 18,
@@ -290,6 +362,20 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 8,
   },
+  reviewAllButton: {
+    minHeight: 48,
+    borderRadius: 14,
+    backgroundColor: "#059669",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  reviewAllText: {
+    fontFamily: "Outfit_700Bold",
+    fontSize: 15,
+    color: "#ffffff",
+  },
   queueSummaryItem: {
     flex: 1,
     minHeight: 66,
@@ -299,6 +385,22 @@ const styles = StyleSheet.create({
     backgroundColor: "#f8fafc",
     borderWidth: 1,
     borderColor: "#e2e8f0",
+  },
+  summaryQueue: {
+    backgroundColor: "rgba(99, 102, 241, 0.05)",
+    borderColor: "rgba(99, 102, 241, 0.12)",
+  },
+  summaryAttention: {
+    backgroundColor: "rgba(239, 68, 68, 0.05)",
+    borderColor: "rgba(239, 68, 68, 0.12)",
+  },
+  summaryProcessing: {
+    backgroundColor: "rgba(245, 158, 11, 0.05)",
+    borderColor: "rgba(245, 158, 11, 0.12)",
+  },
+  summaryReview: {
+    backgroundColor: "rgba(16, 185, 129, 0.05)",
+    borderColor: "rgba(16, 185, 129, 0.12)",
   },
   summaryValue: {
     fontFamily: "Outfit_700Bold",
@@ -321,6 +423,23 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 2,
+  },
+  emptyCard: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 40,
+    gap: 10,
+  },
+  emptyIconCircle: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    backgroundColor: "rgba(5, 150, 105, 0.06)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 6,
+    borderWidth: 1,
+    borderColor: "rgba(5, 150, 105, 0.12)",
   },
   cardColumn: {
     borderRadius: 18,
@@ -411,6 +530,7 @@ const styles = StyleSheet.create({
     fontFamily: "Outfit_700Bold",
     fontSize: 18,
     color: "#0F172A",
+    textAlign: "center",
   },
   emptyText: {
     marginTop: 4,
@@ -418,6 +538,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     color: "#64748B",
+    textAlign: "center",
+    paddingHorizontal: 16,
   },
   retryButton: {
     alignSelf: "flex-start",

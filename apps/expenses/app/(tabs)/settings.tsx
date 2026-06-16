@@ -40,6 +40,10 @@ export default function SettingsScreen() {
   const selected = mutation.variables ?? preferenceToSelection(query.data?.enabled, query.data?.frequency);
   const isSaving = mutation.isPending;
   const displayName = [user?.first_name, user?.last_name].filter(Boolean).join(" ") || user?.email || "Account";
+  const initials = [user?.first_name, user?.last_name]
+    .filter((n): n is string => typeof n === "string" && n.length > 0)
+    .map((name) => name[0].toUpperCase())
+    .join("") || user?.email?.slice(0, 2).toUpperCase() || "US";
 
   return (
     <SafeAreaView edges={["top"]} style={styles.safeArea}>
@@ -92,14 +96,17 @@ export default function SettingsScreen() {
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Account</Text>
-          <View style={styles.accountRow}>
-            <View style={styles.accountIcon}>
-              <Feather name="user" size={18} color="#059669" />
+          <Text style={styles.cardTitle}>Account Profile</Text>
+          <View style={styles.profileCard}>
+            <View style={styles.avatarCircle}>
+              <Text style={styles.avatarInitials}>{initials}</Text>
             </View>
-            <View style={styles.accountText}>
-              <Text style={styles.accountName}>{displayName}</Text>
-              <Text style={styles.accountMeta} numberOfLines={1}>{user?.email}</Text>
+            <View style={styles.profileText}>
+              <Text style={styles.profileName}>{displayName}</Text>
+              <Text style={styles.profileEmail} numberOfLines={1}>{user?.email}</Text>
+              <View style={styles.orgBadge}>
+                <Text style={styles.orgBadgeText}>Organization Member</Text>
+              </View>
             </View>
           </View>
           <Pressable accessibilityRole="button" onPress={logout} style={styles.logoutButton}>
@@ -115,7 +122,7 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: "#F8FAFC" },
   screen: { flex: 1, backgroundColor: "#F8FAFC" },
-  content: { padding: 16, gap: 16 },
+  content: { padding: 16, gap: 16, paddingBottom: 120 },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -231,30 +238,58 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     color: "#ef4444",
   },
-  accountRow: {
+  profileCard: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-  },
-  accountIcon: {
-    width: 42,
-    height: 42,
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
     borderRadius: 16,
+    padding: 16,
+    gap: 16,
+  },
+  avatarCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: "#059669",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(16, 185, 129, 0.1)",
+    borderWidth: 3,
+    borderColor: "rgba(5, 150, 105, 0.15)",
   },
-  accountText: { flex: 1 },
-  accountName: {
+  avatarInitials: {
     fontFamily: "Outfit_700Bold",
-    fontSize: 15,
+    fontSize: 20,
+    color: "#ffffff",
+  },
+  profileText: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
+  },
+  profileName: {
+    fontFamily: "Outfit_700Bold",
+    fontSize: 16,
     color: "#0F172A",
   },
-  accountMeta: {
-    marginTop: 2,
+  profileEmail: {
     fontFamily: "Outfit_400Regular",
     fontSize: 13,
     color: "#64748B",
+  },
+  orgBadge: {
+    alignSelf: "flex-start",
+    backgroundColor: "rgba(5, 150, 105, 0.08)",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    marginTop: 4,
+  },
+  orgBadgeText: {
+    fontFamily: "Outfit_600SemiBold",
+    fontSize: 10,
+    color: "#059669",
   },
   logoutButton: {
     minHeight: 48,
