@@ -1,7 +1,8 @@
 import { spacing, radii, typography, durations } from "./tokens";
 import { ColorTokens, ColorScheme, ThemeMode, ThemeTokens } from "./types";
 
-// Light: warm-paper surfaces, deep ink text, teal brand (kept from current app).
+// Light: invoice_app's "warm paper" identity — off-white paper background, deep
+// ink text, deep forest-green brand, emerald success, brick-red destructive.
 const lightColors: ColorTokens = {
   background: "#FAF9F7",
   surface: "#FFFFFF",
@@ -10,43 +11,44 @@ const lightColors: ColorTokens = {
   text: "#1A1A18",
   textMuted: "#5C5A54",
   textSubtle: "#9A988F",
-  primary: "#059669",
-  primaryMuted: "#E5F4EE",
+  primary: "#0E7A4D",
+  primaryMuted: "#E3F0E9",
   onPrimary: "#FFFFFF",
-  success: "#059669",
-  warning: "#D97706",
-  danger: "#DC2626",
-  info: "#0284C7",
-  catFood: "#D97706",
-  catTravel: "#2563EB",
-  catOffice: "#7C3AED",
-  catTech: "#0891B2",
-  catUtility: "#CA8A04",
-  catMarketing: "#DB2777",
+  success: "#15834E",
+  warning: "#B45309",
+  danger: "#B4271A",
+  info: "#0F6FA8",
+  catFood: "#B45309",
+  catTravel: "#1D4ED8",
+  catOffice: "#6D28D9",
+  catTech: "#0E7490",
+  catUtility: "#A16207",
+  catMarketing: "#BE185D",
 };
 
-// Dark: warm charcoal (not cold blue) surfaces, cream text, brightened teal.
+// Dark: invoice_app's "warm ink" identity — warm charcoal surfaces (not cold
+// blue), cream text, brightened forest-green brand.
 const darkColors: ColorTokens = {
-  background: "#16150F",
-  surface: "#1F1E17",
+  background: "#15140F",
+  surface: "#1E1D16",
   surfaceMuted: "#27261D",
   border: "#34322A",
   text: "#F2F0E9",
   textMuted: "#B6B3A8",
   textSubtle: "#7C7A70",
-  primary: "#34D399",
+  primary: "#3ECF8E",
   primaryMuted: "#10362B",
   onPrimary: "#08160F",
-  success: "#34D399",
+  success: "#3ECF8E",
   warning: "#FBBF24",
-  danger: "#F87171",
-  info: "#38BDF8",
+  danger: "#F4796B",
+  info: "#56B6E6",
   catFood: "#FBBF24",
-  catTravel: "#60A5FA",
-  catOffice: "#A78BFA",
-  catTech: "#22D3EE",
-  catUtility: "#FACC15",
-  catMarketing: "#F472B6",
+  catTravel: "#7AA2F7",
+  catOffice: "#B69BF5",
+  catTech: "#3FC7D4",
+  catUtility: "#E2C04A",
+  catMarketing: "#F07CB0",
 };
 
 const lightShadow = (color: string): ThemeTokens["shadow"] => ({

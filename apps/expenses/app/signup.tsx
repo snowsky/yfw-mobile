@@ -181,7 +181,7 @@ export default function SignupScreen() {
             <Text variant="bodyMd" color="textMuted">Already have an account?</Text>
             <Link href={"/login" as any} asChild>
               <Pressable>
-                <Text variant="bodyMd" color="primary" style={{ fontFamily: "Outfit_600SemiBold" }}>Sign in</Text>
+                <Text variant="bodyMd" color="primary" style={{ fontFamily: "Inter_600SemiBold" }}>Sign in</Text>
               </Pressable>
             </Link>
           </View>
@@ -253,7 +253,7 @@ const makeStyles = (t: ThemeTokens) => ({
   inputIcon: { marginRight: t.spacing.md },
   input: {
     flex: 1,
-    fontFamily: "Outfit_400Regular",
+    fontFamily: "Inter_400Regular",
     fontSize: 16,
     color: t.color.text,
     height: "100%" as const,

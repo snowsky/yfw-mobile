@@ -122,7 +122,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   panelLabel: {
-    fontFamily: "Outfit_700Bold",
+    fontFamily: "Inter_700Bold",
     fontSize: 13,
   },
 });

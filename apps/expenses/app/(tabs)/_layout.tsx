@@ -47,7 +47,7 @@ export default function TabsLayout() {
         ) : undefined,
         tabBarLabelStyle: {
           fontSize: 11,
-          fontFamily: "Outfit_600SemiBold",
+          fontFamily: "Inter_600SemiBold",
           marginTop: -2,
           marginBottom: 4,
         },

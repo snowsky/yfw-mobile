@@ -52,11 +52,11 @@ const styles = StyleSheet.create({
   },
   message: {
     flex: 1,
-    fontFamily: "Outfit_500Medium",
+    fontFamily: "Inter_500Medium",
     fontSize: 14,
   },
   undo: {
-    fontFamily: "Outfit_700Bold",
+    fontFamily: "Inter_700Bold",
     fontSize: 14,
   },
 });

@@ -313,7 +313,7 @@ export default function ExpenseDetailScreen() {
                     <Feather name="file-text" size={20} color={tokens.color.primary} />
                   </View>
                   <View style={{ flex: 1, gap: 2 }}>
-                    <Text variant="bodyMd" style={{ fontFamily: "Outfit_600SemiBold" }}>Receipt attachment ({expense.attachments_count})</Text>
+                    <Text variant="bodyMd" style={{ fontFamily: "Inter_600SemiBold" }}>Receipt attachment ({expense.attachments_count})</Text>
                     <Text variant="bodySm" color="textMuted">Scan processed and stored in database</Text>
                   </View>
                 </View>

@@ -79,7 +79,7 @@ export default function SettingsScreen() {
                 style={[styles.segmentButton, active && styles.segmentButtonActive]}
               >
                 <Feather name={option.icon} size={17} color={active ? tokens.color.onPrimary : tokens.color.textMuted} />
-                <Text variant="bodyMd" style={{ color: active ? tokens.color.onPrimary : tokens.color.textMuted, fontFamily: "Outfit_600SemiBold" }}>
+                <Text variant="bodyMd" style={{ color: active ? tokens.color.onPrimary : tokens.color.textMuted, fontFamily: "Inter_600SemiBold" }}>
                   {option.label}
                 </Text>
               </Pressable>

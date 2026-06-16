@@ -11,22 +11,24 @@ export const spacing = {
   "3xl": 48,
 } as const;
 
+// Radius scale anchored to the web UI's 8px base (rounded-lg) for a tighter,
+// printed-document feel — one notch smaller than a typical "app" rounding.
 export const radii = {
-  sm: 6,
-  md: 8,
-  lg: 12,
-  xl: 16,
-  "2xl": 24,
+  sm: 4,
+  md: 6,
+  lg: 8,
+  xl: 12,
+  "2xl": 16,
   full: 999,
 } as const;
 
-// Outfit weights already loaded in app/_layout.tsx: 300/400/500/600/700.
+// Inter weights loaded in app/_layout.tsx: 300/400/500/600/700 (matches the web UI).
 export const fontFamily = {
-  light: "Outfit_300Light",
-  regular: "Outfit_400Regular",
-  medium: "Outfit_500Medium",
-  semibold: "Outfit_600SemiBold",
-  bold: "Outfit_700Bold",
+  light: "Inter_300Light",
+  regular: "Inter_400Regular",
+  medium: "Inter_500Medium",
+  semibold: "Inter_600SemiBold",
+  bold: "Inter_700Bold",
 } as const;
 
 // Type scale adapted from the web UI's scale, tuned for mobile.

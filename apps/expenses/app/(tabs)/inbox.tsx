@@ -412,7 +412,7 @@ const makeStyles = (t: ThemeTokens) => ({
     justifyContent: "center" as const,
   },
   actionBtnText: {
-    fontFamily: "Outfit_600SemiBold",
+    fontFamily: "Inter_600SemiBold",
   },
   cardTopRow: {
     flexDirection: "row" as const,

@@ -132,7 +132,7 @@ export default function LoginScreen() {
               <Text variant="bodyMd" color="textMuted">New to YFW?</Text>
               <Link href={"/signup" as any} asChild>
                 <Pressable>
-                  <Text variant="bodyMd" color="primary" style={{ fontFamily: "Outfit_600SemiBold" }}>Create an account</Text>
+                  <Text variant="bodyMd" color="primary" style={{ fontFamily: "Inter_600SemiBold" }}>Create an account</Text>
                 </Pressable>
               </Link>
             </View>
@@ -205,7 +205,7 @@ const makeStyles = (t: ThemeTokens) => ({
   inputIcon: { marginRight: t.spacing.md },
   input: {
     flex: 1,
-    fontFamily: "Outfit_400Regular",
+    fontFamily: "Inter_400Regular",
     fontSize: 16,
     color: t.color.text,
     height: "100%" as const,

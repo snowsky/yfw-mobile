@@ -75,7 +75,7 @@ function ModeSwitch({
             style={[styles.segmentItem, active && styles.segmentItemActive]}
           >
             <Feather name={seg.icon} size={16} color={active ? tokens.color.primary : tokens.color.textMuted} />
-            <Text variant="bodyMd" style={{ color: active ? tokens.color.text : tokens.color.textMuted, fontFamily: "Outfit_600SemiBold" }}>
+            <Text variant="bodyMd" style={{ color: active ? tokens.color.text : tokens.color.textMuted, fontFamily: "Inter_600SemiBold" }}>
               {seg.label}
             </Text>
           </Pressable>
@@ -371,7 +371,7 @@ export default function CaptureScreen() {
           <View style={styles.heroTopRow}>
             <Text variant="headingLg" style={{ color: tokens.color.onPrimary, flex: 1 }} numberOfLines={1}>Capture in seconds</Text>
             <Pressable onPress={logout} hitSlop={10} accessibilityRole="button" accessibilityLabel="Sign out">
-              <Text variant="bodyMd" style={{ color: tokens.color.onPrimary, fontFamily: "Outfit_700Bold" }}>Sign out</Text>
+              <Text variant="bodyMd" style={{ color: tokens.color.onPrimary, fontFamily: "Inter_700Bold" }}>Sign out</Text>
             </Pressable>
           </View>
           <Text variant="bodySm" style={{ color: tokens.color.onPrimary + "D9" }} numberOfLines={1}>
@@ -441,7 +441,7 @@ export default function CaptureScreen() {
             {receiptPhase === "done" && (
               <View style={styles.successBanner}>
                 <Feather name="check-circle" size={18} color={tokens.color.success} />
-                <Text variant="bodyMd" style={{ color: tokens.color.success, flex: 1, fontFamily: "Outfit_600SemiBold" }}>
+                <Text variant="bodyMd" style={{ color: tokens.color.success, flex: 1, fontFamily: "Inter_600SemiBold" }}>
                   Receipt uploaded — expense #{receiptExpenseId} queued for OCR
                 </Text>
               </View>
@@ -487,7 +487,7 @@ export default function CaptureScreen() {
                 )}
               </Pressable>
 
-              <Text variant="bodyLg" color="textMuted" style={{ fontFamily: "Outfit_600SemiBold", marginTop: 4 }}>
+              <Text variant="bodyLg" color="textMuted" style={{ fontFamily: "Inter_600SemiBold", marginTop: 4 }}>
                 {voicePhase === "recording"
                   ? `Listening… ${fmtTime(recordingSeconds)}`
                   : voicePhase === "transcribing"
@@ -533,7 +533,7 @@ export default function CaptureScreen() {
                       ? `${voiceDraft.currency} ${voiceDraft.amount.toFixed(2)}`
                       : "Amount unknown"}
                   </Text>
-                  <Text variant="bodySm" style={{ color: confidenceColor(voiceDraft.confidence), marginTop: 4, fontFamily: "Outfit_600SemiBold" }}>
+                  <Text variant="bodySm" style={{ color: confidenceColor(voiceDraft.confidence), marginTop: 4, fontFamily: "Inter_600SemiBold" }}>
                     {confidenceLabel(voiceDraft.confidence)}
                   </Text>
                 </View>
@@ -558,7 +558,7 @@ export default function CaptureScreen() {
             {voicePhase === "saved" && (
               <View style={styles.successBanner}>
                 <Feather name="check-circle" size={18} color={tokens.color.success} />
-                <Text variant="bodyMd" style={{ color: tokens.color.success, flex: 1, fontFamily: "Outfit_600SemiBold" }}>Expense saved — visible in Timeline</Text>
+                <Text variant="bodyMd" style={{ color: tokens.color.success, flex: 1, fontFamily: "Inter_600SemiBold" }}>Expense saved — visible in Timeline</Text>
               </View>
             )}
           </View>
@@ -661,7 +661,7 @@ const makeStyles = (t: ThemeTokens) => ({
     backgroundColor: t.color.surfaceMuted,
     color: t.color.text,
     textAlignVertical: "top" as const,
-    fontFamily: "Outfit_400Regular",
+    fontFamily: "Inter_400Regular",
     fontSize: 15,
   },
 

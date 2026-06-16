@@ -86,5 +86,5 @@ const styles = StyleSheet.create({
   base: { alignItems: "center", justifyContent: "center", flexDirection: "row" },
   row: { flexDirection: "row", alignItems: "center", gap: 8 },
   icon: { alignItems: "center", justifyContent: "center" },
-  label: { fontFamily: "Outfit_600SemiBold" },
+  label: { fontFamily: "Inter_600SemiBold" },
 });
