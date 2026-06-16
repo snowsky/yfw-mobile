@@ -5,25 +5,26 @@ import {
   Image,
   Pressable,
   ScrollView,
-  StyleSheet,
-  Text,
   TextInput,
   View,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { Audio } from "expo-av";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming } from "react-native-reanimated";
 
 import { expensesApi, type ExpenseDraft, type ParsedVoiceExpense } from "../../src/lib/api";
 import { useAuth } from "../../src/providers/AuthProvider";
+import { useTheme, useThemedStyles } from "../../src/theme";
+import { ThemeTokens } from "../../src/theme/types";
+import { Text, Button } from "../../src/components/ui";
 
 type VoicePhase = "idle" | "recording" | "transcribing" | "parsed" | "saving" | "saved";
 type ReceiptPhase = "idle" | "previewing" | "uploading" | "done";
 
 function RecordingPulse() {
+  const { tokens } = useTheme();
   const scale = useSharedValue(1);
   const opacity = useSharedValue(0.4);
 
@@ -38,13 +39,13 @@ function RecordingPulse() {
   }));
 
   return (
-    <View style={styles.pulseWrap} pointerEvents="none" importantForAccessibility="no-hide-descendants">
-      <Animated.View style={[styles.pulseRing, ringStyle]} />
+    <View style={pulseWrap} pointerEvents="none" importantForAccessibility="no-hide-descendants">
+      <Animated.View style={[pulseRing, { backgroundColor: tokens.color.danger }, ringStyle]} />
     </View>
   );
 }
 
-function SegmentedControl({
+function ModeSwitch({
   value,
   onChange,
   disabled,
@@ -53,6 +54,8 @@ function SegmentedControl({
   onChange: (next: "receipt" | "voice") => void;
   disabled?: boolean;
 }) {
+  const { tokens } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const segments: { key: "receipt" | "voice"; label: string; icon: keyof typeof Feather.glyphMap }[] = [
     { key: "receipt", label: "Receipt", icon: "camera" },
     { key: "voice", label: "Voice", icon: "mic" },
@@ -71,8 +74,8 @@ function SegmentedControl({
             onPress={() => onChange(seg.key)}
             style={[styles.segmentItem, active && styles.segmentItemActive]}
           >
-            <Feather name={seg.icon} size={16} color={active ? "#059669" : "#64748b"} />
-            <Text style={[styles.segmentText, active ? styles.segmentTextActive : styles.segmentTextInactive]}>
+            <Feather name={seg.icon} size={16} color={active ? tokens.color.primary : tokens.color.textMuted} />
+            <Text variant="bodyMd" style={{ color: active ? tokens.color.text : tokens.color.textMuted, fontFamily: "Outfit_600SemiBold" }}>
               {seg.label}
             </Text>
           </Pressable>
@@ -85,6 +88,8 @@ function SegmentedControl({
 export default function CaptureScreen() {
   const { user, logout } = useAuth();
   const queryClient = useQueryClient();
+  const { tokens } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const [mode, setMode] = useState<"receipt" | "voice">("receipt");
 
   // ── Voice state ──────────────────────────────────────────────────────────
@@ -346,9 +351,9 @@ export default function CaptureScreen() {
   };
 
   const confidenceColor = (c: number) => {
-    if (c >= 0.8) return "#059669";
-    if (c >= 0.5) return "#d97706";
-    return "#dc2626";
+    if (c >= 0.8) return tokens.color.success;
+    if (c >= 0.5) return tokens.color.warning;
+    return tokens.color.danger;
   };
 
   // ── Render ───────────────────────────────────────────────────────────────
@@ -363,35 +368,29 @@ export default function CaptureScreen() {
 
         {/* ── Slim hero ── */}
         <View style={styles.heroCard}>
-          <LinearGradient
-            colors={["#10b981", "#059669"]}
-            style={StyleSheet.absoluteFillObject}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-          />
           <View style={styles.heroTopRow}>
-            <Text style={styles.heroTitle} numberOfLines={1}>Capture in seconds</Text>
+            <Text variant="headingLg" style={{ color: tokens.color.onPrimary, flex: 1 }} numberOfLines={1}>Capture in seconds</Text>
             <Pressable onPress={logout} hitSlop={10} accessibilityRole="button" accessibilityLabel="Sign out">
-              <Text style={styles.heroSignOut}>Sign out</Text>
+              <Text variant="bodyMd" style={{ color: tokens.color.onPrimary, fontFamily: "Outfit_700Bold" }}>Sign out</Text>
             </Pressable>
           </View>
-          <Text style={styles.heroBody} numberOfLines={1}>
+          <Text variant="bodySm" style={{ color: tokens.color.onPrimary + "D9" }} numberOfLines={1}>
             {user?.email ?? "Speak an expense or snap a receipt."}
           </Text>
         </View>
 
         {/* ── Mode switch ── */}
-        <SegmentedControl value={mode} onChange={setMode} disabled={switchLocked} />
+        <ModeSwitch value={mode} onChange={setMode} disabled={switchLocked} />
 
         {/* ── Receipt panel ── */}
         {mode === "receipt" && (
           <View style={styles.sectionCard}>
             <View style={styles.sectionHeader}>
               <View style={styles.sectionTitleRow}>
-                <Feather name="camera" size={16} color="#059669" />
-                <Text style={styles.sectionTitle}>Receipt scan</Text>
+                <Feather name="camera" size={16} color={tokens.color.primary} />
+                <Text variant="headingMd">Receipt scan</Text>
               </View>
-              <Text style={styles.sectionDescription}>
+              <Text variant="bodyMd" color="textMuted">
                 Snap a photo — a draft expense is created and sent for OCR review.
               </Text>
             </View>
@@ -400,58 +399,49 @@ export default function CaptureScreen() {
               <Image source={{ uri: receiptUri }} style={styles.receiptPreview} resizeMode="cover" />
             )}
 
-            {receiptError ? <Text style={styles.errorText}>{receiptError}</Text> : null}
+            {receiptError ? <Text variant="bodySm" color="danger">{receiptError}</Text> : null}
 
             {(receiptPhase === "idle" || receiptPhase === "done") && (
               <View style={styles.inlineRow}>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={receiptPhase === "done" ? "Scan another receipt" : "Camera scan"}
-                  style={[styles.inlineBtn, styles.primaryBtn, { flex: 1 }]}
+                <Button
+                  label="Camera scan"
                   onPress={handlePickReceipt}
-                >
-                  <Feather name="camera" size={16} color="#ffffff" />
-                  <Text style={styles.primaryBtnText}>
-                    {receiptPhase === "done" ? "Camera scan" : "Camera scan"}
-                  </Text>
-                </Pressable>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Choose from gallery"
-                  style={[styles.inlineBtn, styles.outlineBtn, { flex: 1 }]}
+                  leftIcon={<Feather name="camera" size={16} color={tokens.color.onPrimary} />}
+                  style={{ flex: 1 }}
+                />
+                <Button
+                  label="Choose gallery"
+                  variant="outline"
                   onPress={handlePickGallery}
-                >
-                  <Feather name="image" size={16} color="#059669" />
-                  <Text style={[styles.outlineBtnText, { color: "#059669" }]}>
-                    Choose gallery
-                  </Text>
-                </Pressable>
+                  leftIcon={<Feather name="image" size={16} color={tokens.color.primary} />}
+                  style={{ flex: 1 }}
+                />
               </View>
             )}
 
             {receiptPhase === "previewing" && (
               <View style={styles.inlineRow}>
-                <Pressable accessibilityRole="button" style={[styles.inlineBtn, styles.primaryBtn]} onPress={handleUploadReceipt}>
-                  <Feather name="upload" size={15} color="#ffffff" />
-                  <Text style={styles.primaryBtnText}>Upload & save</Text>
-                </Pressable>
-                <Pressable accessibilityRole="button" style={[styles.inlineBtn, styles.outlineBtn]} onPress={resetReceipt}>
-                  <Text style={styles.outlineBtnText}>Discard</Text>
-                </Pressable>
+                <Button
+                  label="Upload & save"
+                  onPress={handleUploadReceipt}
+                  leftIcon={<Feather name="upload" size={15} color={tokens.color.onPrimary} />}
+                  style={{ flex: 1 }}
+                />
+                <Button label="Discard" variant="outline" onPress={resetReceipt} style={{ flex: 1 }} />
               </View>
             )}
 
             {receiptPhase === "uploading" && (
               <View style={styles.uploadingRow}>
-                <ActivityIndicator color="#059669" />
-                <Text style={styles.uploadingText}>Uploading receipt…</Text>
+                <ActivityIndicator color={tokens.color.primary} />
+                <Text variant="bodyMd" color="textMuted">Uploading receipt…</Text>
               </View>
             )}
 
             {receiptPhase === "done" && (
               <View style={styles.successBanner}>
-                <Feather name="check-circle" size={18} color="#059669" />
-                <Text style={styles.successText}>
+                <Feather name="check-circle" size={18} color={tokens.color.success} />
+                <Text variant="bodyMd" style={{ color: tokens.color.success, flex: 1, fontFamily: "Outfit_600SemiBold" }}>
                   Receipt uploaded — expense #{receiptExpenseId} queued for OCR
                 </Text>
               </View>
@@ -464,10 +454,10 @@ export default function CaptureScreen() {
           <View style={styles.sectionCard}>
             <View style={styles.sectionHeader}>
               <View style={styles.sectionTitleRow}>
-                <Feather name="mic" size={16} color="#059669" />
-                <Text style={styles.sectionTitle}>Voice expense</Text>
+                <Feather name="mic" size={16} color={tokens.color.primary} />
+                <Text variant="headingMd">Voice expense</Text>
               </View>
-              <Text style={styles.sectionDescription}>
+              <Text variant="bodyMd" color="textMuted">
                 Tap record, or type a description and tap Parse.
               </Text>
             </View>
@@ -487,17 +477,17 @@ export default function CaptureScreen() {
                 disabled={isVoiceBusy}
               >
                 {isVoiceBusy ? (
-                  <ActivityIndicator color="#ffffff" size="large" />
+                  <ActivityIndicator color={tokens.color.onPrimary} size="large" />
                 ) : (
                   <Feather
                     name={voicePhase === "recording" ? "square" : voicePhase === "saved" ? "check-circle" : "mic"}
                     size={28}
-                    color="#ffffff"
+                    color={tokens.color.onPrimary}
                   />
                 )}
               </Pressable>
-              
-              <Text style={styles.micStatusText}>
+
+              <Text variant="bodyLg" color="textMuted" style={{ fontFamily: "Outfit_600SemiBold", marginTop: 4 }}>
                 {voicePhase === "recording"
                   ? `Listening… ${fmtTime(recordingSeconds)}`
                   : voicePhase === "transcribing"
@@ -516,72 +506,59 @@ export default function CaptureScreen() {
               value={transcript}
               onChangeText={setTranscript}
               placeholder='e.g. "Spent $18 on lunch at Freshii today"'
-              placeholderTextColor="#94a3b8"
+              placeholderTextColor={tokens.color.textSubtle}
               style={styles.textarea}
               editable={voicePhase !== "recording" && voicePhase !== "transcribing"}
             />
 
             {voicePhase !== "saved" && voicePhase !== "recording" && (
               <View style={styles.inlineRow}>
-                <Pressable
-                  accessibilityRole="button"
-                  style={[
-                    styles.inlineBtn,
-                    styles.outlineBtn,
-                    (isVoiceBusy || !transcript.trim()) && styles.buttonDisabled,
-                  ]}
+                <Button
+                  label={voicePhase === "transcribing" ? "Parsing…" : "Parse draft"}
+                  variant="outline"
                   onPress={() => parseDraft()}
                   disabled={isVoiceBusy || !transcript.trim()}
-                >
-                  <Text style={styles.outlineBtnText}>
-                    {voicePhase === "transcribing" ? "Parsing…" : "Parse draft"}
-                  </Text>
-                </Pressable>
+                  style={{ flex: 1 }}
+                />
               </View>
             )}
 
-            {voiceError ? <Text style={styles.errorText}>{voiceError}</Text> : null}
+            {voiceError ? <Text variant="bodySm" color="danger">{voiceError}</Text> : null}
 
             {voiceDraft && voicePhase !== "idle" && voicePhase !== "saved" && (
               <View style={styles.draftCard}>
                 <View style={styles.draftRow}>
-                  <Text style={styles.draftAmount}>
+                  <Text variant="headingLg" style={{ flex: 1, color: tokens.color.primary }}>
                     {voiceDraft.amount != null
                       ? `${voiceDraft.currency} ${voiceDraft.amount.toFixed(2)}`
                       : "Amount unknown"}
                   </Text>
-                  <Text style={[styles.draftConfidence, { color: confidenceColor(voiceDraft.confidence) }]}>
+                  <Text variant="bodySm" style={{ color: confidenceColor(voiceDraft.confidence), marginTop: 4, fontFamily: "Outfit_600SemiBold" }}>
                     {confidenceLabel(voiceDraft.confidence)}
                   </Text>
                 </View>
-                <Text style={styles.draftMeta}>
+                <Text variant="bodyMd" color="textMuted">
                   {[voiceDraft.category, voiceDraft.vendor, voiceDraft.expense_date]
                     .filter(Boolean)
                     .join("  ·  ")}
                 </Text>
-                <Text style={styles.draftParser}>
+                <Text variant="bodySm" color="textSubtle">
                   {voiceDraft.parser_used.toUpperCase()} · {Math.round(voiceDraft.confidence * 100)}%
                 </Text>
 
-                <Pressable
-                  accessibilityRole="button"
-                  style={[styles.inlineBtn, styles.primaryBtn, voicePhase === "saving" && styles.buttonDisabled]}
+                <Button
+                  label="Save expense"
                   onPress={saveVoiceExpense}
-                  disabled={voicePhase === "saving"}
-                >
-                  {voicePhase === "saving" ? (
-                    <ActivityIndicator color="#ffffff" size="small" />
-                  ) : (
-                    <Text style={styles.primaryBtnText}>Save expense</Text>
-                  )}
-                </Pressable>
+                  loading={voicePhase === "saving"}
+                  style={{ marginTop: 4 }}
+                />
               </View>
             )}
 
             {voicePhase === "saved" && (
               <View style={styles.successBanner}>
-                <Feather name="check-circle" size={18} color="#059669" />
-                <Text style={styles.successText}>Expense saved — visible in Timeline</Text>
+                <Feather name="check-circle" size={18} color={tokens.color.success} />
+                <Text variant="bodyMd" style={{ color: tokens.color.success, flex: 1, fontFamily: "Outfit_600SemiBold" }}>Expense saved — visible in Timeline</Text>
               </View>
             )}
           </View>
@@ -592,162 +569,128 @@ export default function CaptureScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: "#F8FAFC" },
-  screen: { flex: 1, backgroundColor: "#F8FAFC" },
-  content: { padding: 16, gap: 16, paddingBottom: 120 },
+// Layout-only constants for the pulse ring (color is applied at runtime from tokens).
+const pulseWrap = {
+  position: "absolute" as const,
+  width: 80,
+  height: 80,
+  alignItems: "center" as const,
+  justifyContent: "center" as const,
+};
+const pulseRing = {
+  position: "absolute" as const,
+  width: 80,
+  height: 80,
+  borderRadius: 40,
+};
 
-  // Hero card
+const makeStyles = (t: ThemeTokens) => ({
+  safeArea: { flex: 1, backgroundColor: t.color.background },
+  screen: { flex: 1, backgroundColor: t.color.background },
+  content: { padding: t.spacing.lg, gap: t.spacing.lg, paddingBottom: 120 },
+
   heroCard: {
-    borderRadius: 18,
-    padding: 16,
-    gap: 8,
-    backgroundColor: "#10b981",
-    shadowColor: "#cbd5e1",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 2,
-    position: "relative",
-    overflow: "hidden",
+    borderRadius: t.radii.xl,
+    padding: t.spacing.lg,
+    gap: t.spacing.sm,
+    backgroundColor: t.color.primary,
+    ...t.shadow.medium,
+    overflow: "hidden" as const,
   },
-  heroTitle: { fontFamily: "Outfit_700Bold", fontSize: 22, color: "#ffffff", flex: 1 },
-  heroBody: { fontFamily: "Outfit_400Regular", fontSize: 13, lineHeight: 18, color: "#ecfdf5" },
-  heroTopRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 12 },
-  heroSignOut: { fontFamily: "Outfit_700Bold", fontSize: 13, color: "#ffffff" },
+  heroTopRow: { flexDirection: "row" as const, justifyContent: "space-between" as const, alignItems: "center" as const, gap: t.spacing.md },
+
   segment: {
-    flexDirection: "row",
-    backgroundColor: "#F1F5F9",
-    borderRadius: 16,
-    padding: 6,
+    flexDirection: "row" as const,
+    backgroundColor: t.color.surfaceMuted,
+    borderRadius: t.radii.lg,
+    padding: 4,
     borderWidth: 1,
-    borderColor: "#E2E8F0"
+    borderColor: t.color.border,
   },
   segmentItem: {
     flex: 1,
     minHeight: 46,
-    borderRadius: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
+    borderRadius: t.radii.md,
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+    gap: t.spacing.sm,
   },
   segmentItemActive: {
-    backgroundColor: "#ffffff",
-    shadowColor: "#0f172a",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 2,
+    backgroundColor: t.color.surface,
+    ...t.shadow.soft,
   },
-  segmentText: { fontFamily: "Outfit_600SemiBold", fontSize: 14 },
-  segmentTextActive: { color: "#0F172A" },
-  segmentTextInactive: { color: "#64748B" },
-  
-  // Mic Container UI
+
   micContainer: {
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 24,
-    gap: 16,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+    paddingVertical: t.spacing.xl,
+    gap: t.spacing.lg,
   },
   micCircle: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: "#059669",
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#059669",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 4,
+    backgroundColor: t.color.primary,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+    ...t.shadow.medium,
   },
   micCircleActive: {
-    backgroundColor: "#ef4444",
-    shadowColor: "#ef4444",
-  },
-  micStatusText: {
-    fontFamily: "Outfit_600SemiBold",
-    fontSize: 15,
-    color: "#475569",
-    marginTop: 4,
-  },
-  pulseWrap: {
-    position: "absolute",
-    width: 80,
-    height: 80,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  pulseRing: {
-    position: "absolute",
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: "#ef4444",
+    backgroundColor: t.color.danger,
   },
   buttonDisabled: { opacity: 0.55 },
 
-  // Section cards
-  sectionCard: { 
-    borderRadius: 18, 
-    padding: 18, 
-    gap: 14, 
-    backgroundColor: "#ffffff",
-    shadowColor: "#cbd5e1",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 2,
+  sectionCard: {
+    borderRadius: t.radii.xl,
+    padding: t.spacing.lg,
+    gap: t.spacing.md,
+    backgroundColor: t.color.surface,
+    ...t.shadow.soft,
   },
   sectionHeader: { gap: 6 },
-  sectionTitleRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  sectionTitle: { fontFamily: "Outfit_700Bold", fontSize: 20, color: "#0F172A" },
-  sectionDescription: { fontFamily: "Outfit_400Regular", fontSize: 14, lineHeight: 20, color: "#64748B" },
+  sectionTitleRow: { flexDirection: "row" as const, alignItems: "center" as const, gap: t.spacing.sm },
 
-  // Text input
   textarea: {
-    minHeight: 88, borderWidth: 1, borderColor: "#e2e8f0", borderRadius: 16,
-    paddingHorizontal: 16, paddingVertical: 14, backgroundColor: "#f8fafc",
-    color: "#0F172A", textAlignVertical: "top", fontFamily: "Outfit_400Regular", fontSize: 15,
+    minHeight: 88,
+    borderWidth: 1,
+    borderColor: t.color.border,
+    borderRadius: t.radii.lg,
+    paddingHorizontal: t.spacing.md,
+    paddingVertical: t.spacing.md,
+    backgroundColor: t.color.surfaceMuted,
+    color: t.color.text,
+    textAlignVertical: "top" as const,
+    fontFamily: "Outfit_400Regular",
+    fontSize: 15,
   },
 
-  // Inline buttons
-  inlineRow: { flexDirection: "row", gap: 10, flexWrap: "wrap" },
-  inlineBtn: {
-    minHeight: 46, paddingHorizontal: 18, borderRadius: 14,
-    alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 8,
-  },
-  outlineBtn: { borderWidth: 1, borderColor: "#e2e8f0", backgroundColor: "#ffffff" },
-  outlineBtnText: { color: "#0F172A", fontFamily: "Outfit_700Bold", fontSize: 15 },
-  primaryBtn: { backgroundColor: "#059669" },
-  primaryBtnText: { color: "#ffffff", fontFamily: "Outfit_700Bold", fontSize: 15 },
+  inlineRow: { flexDirection: "row" as const, gap: t.spacing.sm, flexWrap: "wrap" as const },
 
-  // Draft preview
   draftCard: {
-    borderRadius: 16, padding: 16, gap: 8, backgroundColor: "rgba(16, 185, 129, 0.05)",
-    borderWidth: 1, borderColor: "rgba(16, 185, 129, 0.2)",
+    borderRadius: t.radii.lg,
+    padding: t.spacing.lg,
+    gap: t.spacing.sm,
+    backgroundColor: t.color.primaryMuted,
+    borderWidth: 1,
+    borderColor: t.color.primary + "33",
   },
-  draftRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", gap: 12 },
-  draftAmount: { flex: 1, fontFamily: "Outfit_700Bold", fontSize: 22, color: "#065f46" },
-  draftConfidence: { fontFamily: "Outfit_600SemiBold", fontSize: 12, marginTop: 4 },
-  draftMeta: { fontFamily: "Outfit_500Medium", fontSize: 14, color: "#475569", lineHeight: 20 },
-  draftParser: { fontFamily: "Outfit_400Regular", fontSize: 12, color: "#94a3b8" },
+  draftRow: { flexDirection: "row" as const, justifyContent: "space-between" as const, alignItems: "flex-start" as const, gap: t.spacing.md },
 
-  // Receipt preview
   receiptPreview: {
-    width: "100%", height: 200, borderRadius: 16, backgroundColor: "#f1f5f9",
+    width: "100%" as const,
+    height: 200,
+    borderRadius: t.radii.lg,
+    backgroundColor: t.color.surfaceMuted,
   },
 
-  // Status rows
   successBanner: {
-    flexDirection: "row", alignItems: "center", gap: 8,
-    backgroundColor: "rgba(16, 185, 129, 0.1)", borderRadius: 16, padding: 12,
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: t.spacing.sm,
+    backgroundColor: t.color.primaryMuted,
+    borderRadius: t.radii.lg,
+    padding: t.spacing.md,
   },
-  successText: { fontFamily: "Outfit_600SemiBold", fontSize: 14, color: "#047857", flex: 1 },
-  uploadingRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-  uploadingText: { fontFamily: "Outfit_500Medium", fontSize: 14, color: "#475569" },
-  errorText: { fontFamily: "Outfit_400Regular", fontSize: 13, color: "#ef4444", lineHeight: 18 },
+  uploadingRow: { flexDirection: "row" as const, alignItems: "center" as const, gap: t.spacing.sm },
 });
