@@ -1,10 +1,13 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, View } from "react-native";
 import { useQuery } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import { expensesApi } from "../../src/lib/api";
+import { queryKeys } from "../../src/lib/queryKeys";
 import { useAuth } from "../../src/providers/AuthProvider";
+import { useTheme, useThemedStyles } from "../../src/theme";
+import { ThemeTokens, ColorTokens } from "../../src/theme/types";
+import { Screen, Card, MetricCard, Text } from "../../src/components/ui";
 
 function asCurrency(value: number | undefined, currency = "USD") {
   return new Intl.NumberFormat("en-US", {
@@ -14,10 +17,15 @@ function asCurrency(value: number | undefined, currency = "USD") {
   }).format(value ?? 0);
 }
 
+// Distinct accent token keys cycled across breakdown bars.
+const BAR_KEYS: (keyof ColorTokens)[] = ["primary", "info", "catOffice", "warning", "catTech"];
+
 export default function InsightsScreen() {
   const { accessToken } = useAuth();
+  const { tokens } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const query = useQuery({
-    queryKey: ["expenses", "insights"],
+    queryKey: queryKeys.insights,
     queryFn: expensesApi.getSummary,
     enabled: Boolean(accessToken),
   });
@@ -27,288 +35,188 @@ export default function InsightsScreen() {
   const change = query.data?.changes?.total_amount_percent ?? 0;
   const categoryBreakdown = (query.data?.category_breakdown ?? []).slice(0, 5);
   const changeIsIncrease = change > 0;
-  const changeTone = changeIsIncrease ? "#dc2626" : "#059669";
+  const changeStatus: "success" | "danger" = changeIsIncrease ? "danger" : "success";
 
-  const cards = [
+  const cards: {
+    title: string;
+    value: string;
+    detail: string;
+    icon: keyof typeof Feather.glyphMap;
+    iconColor: string;
+    changeStatus?: "success" | "danger" | "neutral";
+  }[] = [
     {
       title: "This month",
       value: asCurrency(current?.total_amount),
       detail: `${current?.count ?? 0} expenses`,
       icon: "credit-card",
-      iconColor: "#059669",
-      iconBg: "rgba(16, 185, 129, 0.06)",
+      iconColor: tokens.color.primary,
     },
     {
       title: "Previous month",
       value: asCurrency(previous?.total_amount),
       detail: `${previous?.count ?? 0} expenses`,
       icon: "calendar",
-      iconColor: "#64748b",
-      iconBg: "rgba(100, 116, 139, 0.06)",
+      iconColor: tokens.color.textMuted,
     },
     {
       title: "Change",
       value: `${change >= 0 ? "+" : ""}${change.toFixed(1)}%`,
-      detail: "Compared with previous period",
+      detail: "vs previous period",
       icon: change > 0 ? "trending-up" : "trending-down",
-      iconColor: changeTone,
-      iconBg: changeIsIncrease ? "rgba(239, 68, 68, 0.06)" : "rgba(16, 185, 129, 0.06)",
-      tone: changeTone,
+      iconColor: changeIsIncrease ? tokens.color.danger : tokens.color.success,
+      changeStatus,
     },
   ];
 
+    const changeAccent = changeIsIncrease ? tokens.color.danger : tokens.color.success;
+
   return (
-    <SafeAreaView edges={["top"]} style={styles.safeArea}>
-      <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-        <View style={styles.heroCard}>
-          <Text style={styles.heroLabel}>This month</Text>
-          <Text style={styles.heroTitle}>{asCurrency(current?.total_amount)}</Text>
-          <View style={styles.heroMetaRow}>
-            <Text style={styles.heroBody}>{current?.count ?? 0} expenses</Text>
-            <View style={[styles.changePill, { backgroundColor: changeIsIncrease ? "#fef2f2" : "#ecfdf5" }]}>
-              <Feather name={changeIsIncrease ? "trending-up" : "trending-down"} size={14} color={changeTone} />
-              <Text style={[styles.changePillText, { color: changeTone }]}>
-                {change >= 0 ? "+" : ""}{change.toFixed(1)}%
-              </Text>
-            </View>
+    <Screen scroll contentContainerStyle={{ gap: tokens.spacing.lg }}>
+      <View style={styles.heroCard}>
+        <Text variant="bodySm" color="textMuted">This month</Text>
+        <Text variant="display" color="primary">{asCurrency(current?.total_amount)}</Text>
+        <View style={styles.heroMetaRow}>
+          <Text variant="bodyLg" color="textMuted">{current?.count ?? 0} expenses</Text>
+          <View style={[styles.changePill, { backgroundColor: changeAccent + "1A" }]}>
+            <Feather name={changeIsIncrease ? "trending-up" : "trending-down"} size={14} color={changeAccent} />
+            <Text variant="bodySm" style={{ color: changeAccent }}>
+              {change >= 0 ? "+" : ""}{change.toFixed(1)}%
+            </Text>
           </View>
         </View>
+      </View>
 
-        {query.isLoading ? (
-          <View style={styles.metricCard}>
-            <Text style={styles.emptyText}>Loading monthly summary...</Text>
+      {query.isLoading ? (
+        <Card>
+          <Text variant="bodyMd" color="textMuted">Loading monthly summary...</Text>
+        </Card>
+      ) : query.isError ? (
+        <Card style={styles.errorCard}>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text variant="headingMd">Insights could not load</Text>
+            <Text variant="bodyMd" color="textMuted">
+              {query.error instanceof Error ? query.error.message : "Try again shortly."}
+            </Text>
           </View>
-        ) : query.isError ? (
-          <View style={styles.metricCard}>
-            <View style={styles.metricTextWrap}>
-              <Text style={styles.emptyTitle}>Insights could not load</Text>
-              <Text style={styles.emptyText}>
-                {query.error instanceof Error ? query.error.message : "Try again shortly."}
-              </Text>
-            </View>
-            <Pressable style={styles.iconButton} onPress={() => query.refetch()}>
-              <Feather name="rotate-cw" size={17} color="#334155" />
-            </Pressable>
-          </View>
+          <Pressable style={styles.iconButton} onPress={() => query.refetch()}>
+            <Feather name="rotate-cw" size={17} color={tokens.color.textMuted} />
+          </Pressable>
+        </Card>
+      ) : (
+        cards.map((card) => (
+          <MetricCard
+            key={card.title}
+            label={card.title}
+            value={card.value}
+            change={card.detail}
+            changeStatus={card.changeStatus ?? "neutral"}
+            icon={
+              <View style={[styles.metricIconWrap, { backgroundColor: card.iconColor + "1A" }]}>
+                <Feather name={card.icon} size={20} color={card.iconColor} />
+              </View>
+            }
+          />
+        ))
+      )}
+
+      <Card style={{ gap: tokens.spacing.md }}>
+        <View>
+          <Text variant="headingLg">Category breakdown</Text>
+          <Text variant="bodyMd" color="textMuted">Your top categories for the current period.</Text>
+        </View>
+
+        {categoryBreakdown.length === 0 && !query.isLoading ? (
+          <Text variant="bodyMd" color="textMuted">No category data yet. Capture expenses to build this view.</Text>
         ) : (
-          cards.map((card) => (
-            <View key={card.title} style={styles.metricCard}>
-              <View style={styles.metricTextWrap}>
-                <Text style={styles.metricLabel}>{card.title}</Text>
-                <Text style={styles.metricValue} numberOfLines={1} adjustsFontSizeToFit>
-                  {card.value}
-                </Text>
-                <Text style={styles.metricDetail}>{card.detail}</Text>
-              </View>
-              <View style={[styles.metricIconWrap, { backgroundColor: card.iconBg }]}>
-                <Feather name={card.icon as any} size={20} color={card.iconColor} />
-              </View>
-            </View>
-          ))
-        )}
-
-        <View style={styles.breakdownCard}>
-          <Text style={styles.breakdownTitle}>Category breakdown</Text>
-          <Text style={styles.breakdownBody}>Your top categories for the current period.</Text>
-
-          {categoryBreakdown.length === 0 && !query.isLoading ? (
-            <Text style={styles.emptyText}>No category data yet. Capture expenses to build this view.</Text>
-          ) : (
-            categoryBreakdown.map((category, idx) => {
-              const breakdownColors = ["#059669", "#3b82f6", "#8b5cf6", "#f59e0b", "#06b6d4"];
-              const barColor = breakdownColors[idx % breakdownColors.length];
-              return (
-                <View key={category.category} style={styles.categoryRow}>
-                  <View style={styles.categoryRowTop}>
-                    <Text style={styles.categoryName} numberOfLines={1}>{category.category}</Text>
-                    <Text style={styles.categoryAmount}>{asCurrency(category.total_amount)}</Text>
-                  </View>
-                  <View style={styles.barTrack}>
-                    <View
-                      style={[
-                        styles.barFill,
-                        {
-                          width: `${Math.min(100, Number(category.percentage || 0))}%`,
-                          backgroundColor: barColor,
-                        },
-                      ]}
-                    />
-                  </View>
+          categoryBreakdown.map((category, idx) => {
+            const barColor = tokens.color[BAR_KEYS[idx % BAR_KEYS.length]];
+            return (
+              <View key={category.category} style={styles.categoryRow}>
+                <View style={styles.categoryRowTop}>
+                  <Text variant="bodyMd" style={{ flex: 1, marginRight: tokens.spacing.md }} numberOfLines={1}>{category.category}</Text>
+                  <Text variant="headingSm">{asCurrency(category.total_amount)}</Text>
                 </View>
-              );
-            })
-          )}
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+                <View style={styles.barTrack}>
+                  <View
+                    style={[
+                      styles.barFill,
+                      {
+                        width: `${Math.min(100, Number(category.percentage || 0))}%`,
+                        backgroundColor: barColor,
+                      },
+                    ]}
+                  />
+                </View>
+              </View>
+            );
+          })
+        )}
+      </Card>
+    </Screen>
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: "#F8FAFC" },
-  screen: { flex: 1, backgroundColor: "#F8FAFC" },
-  content: { padding: 16, gap: 16, paddingBottom: 120 },
+const makeStyles = (t: ThemeTokens) => ({
   heroCard: {
-    borderRadius: 18,
-    padding: 20,
-    gap: 10,
-    backgroundColor: "#0F172A",
-    shadowColor: "#cbd5e1",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  heroLabel: {
-    fontFamily: "Outfit_600SemiBold",
-    fontSize: 13,
-    color: "#cbd5e1",
-  },
-  heroTitle: {
-    fontFamily: "Outfit_700Bold",
-    fontSize: 34,
-    color: "#ffffff",
+    borderRadius: t.radii.xl,
+    padding: t.spacing.xl,
+    gap: t.spacing.xs,
+    backgroundColor: t.color.primaryMuted,
+    borderWidth: 1,
+    borderColor: t.color.primary + "26",
   },
   heroMetaRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    flexWrap: "wrap",
-  },
-  heroBody: {
-    fontFamily: "Outfit_400Regular",
-    fontSize: 15,
-    lineHeight: 22,
-    color: "#cbd5e1",
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: t.spacing.sm,
+    flexWrap: "wrap" as const,
   },
   changePill: {
     minHeight: 30,
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    flexDirection: "row",
-    alignItems: "center",
+    borderRadius: t.radii.full,
+    paddingHorizontal: t.spacing.sm,
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
     gap: 5,
   },
-  changePillText: {
-    fontFamily: "Outfit_700Bold",
-    fontSize: 12,
-  },
-  metricCard: {
-    borderRadius: 18,
-    padding: 18,
-    backgroundColor: "#ffffff",
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: 16,
-    shadowColor: "#cbd5e1",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  metricTextWrap: {
-    flex: 1,
-    minWidth: 0,
-  },
-  metricLabel: {
-    fontFamily: "Outfit_500Medium",
-    fontSize: 14,
-    color: "#64748B",
-  },
-  metricValue: {
-    marginTop: 4,
-    fontFamily: "Outfit_700Bold",
-    fontSize: 28,
-    color: "#0F172A",
-  },
-  metricDetail: {
-    marginTop: 4,
-    fontFamily: "Outfit_400Regular",
-    fontSize: 14,
-    color: "#64748B",
+  errorCard: {
+    flexDirection: "row" as const,
+    justifyContent: "space-between" as const,
+    alignItems: "center" as const,
+    gap: t.spacing.md,
   },
   metricIconWrap: {
     width: 48,
     height: 48,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(16, 185, 129, 0.1)",
+    borderRadius: t.radii.lg,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
   },
   iconButton: {
     width: 44,
     height: 44,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#f8fafc",
+    borderRadius: t.radii.md,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+    backgroundColor: t.color.surfaceMuted,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: t.color.border,
   },
-  breakdownCard: {
-    borderRadius: 18,
-    padding: 18,
-    gap: 12,
-    backgroundColor: "#ffffff",
-    shadowColor: "#cbd5e1",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  breakdownTitle: {
-    fontFamily: "Outfit_700Bold",
-    fontSize: 20,
-    color: "#0F172A",
-  },
-  breakdownBody: {
-    fontFamily: "Outfit_400Regular",
-    fontSize: 14,
-    lineHeight: 20,
-    color: "#64748B",
-  },
-  categoryRow: {
-    gap: 6,
-  },
+  categoryRow: { gap: 6 },
   categoryRowTop: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  categoryName: {
-    flex: 1,
-    minWidth: 0,
-    marginRight: 12,
-    fontFamily: "Outfit_500Medium",
-    fontSize: 14,
-    color: "#0F172A",
-  },
-  emptyTitle: {
-    fontFamily: "Outfit_700Bold",
-    fontSize: 18,
-    color: "#0F172A",
-  },
-  categoryAmount: {
-    fontFamily: "Outfit_600SemiBold",
-    fontSize: 14,
-    color: "#0F172A",
+    flexDirection: "row" as const,
+    justifyContent: "space-between" as const,
+    alignItems: "center" as const,
   },
   barTrack: {
     height: 8,
-    borderRadius: 999,
-    backgroundColor: "#e2e8f0",
-    overflow: "hidden",
+    borderRadius: t.radii.full,
+    backgroundColor: t.color.surfaceMuted,
+    overflow: "hidden" as const,
   },
   barFill: {
     height: 8,
-    borderRadius: 999,
-    backgroundColor: "#059669",
-  },
-  emptyText: {
-    fontFamily: "Outfit_400Regular",
-    fontSize: 14,
-    lineHeight: 20,
-    color: "#64748B",
+    borderRadius: t.radii.full,
   },
 });

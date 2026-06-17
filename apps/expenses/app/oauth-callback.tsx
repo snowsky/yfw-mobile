@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 
 import { mobileUserSchema } from "../src/lib/api";
 import { setAccessToken, setStoredUser } from "../src/lib/auth-storage";
 import { useAuth } from "../src/providers/AuthProvider";
+import { useTheme, useThemedStyles } from "../src/theme";
+import { ThemeTokens } from "../src/theme/types";
+import { Card, Text } from "../src/components/ui";
 
 function decodeUserParam(userParam: string) {
   const normalized = userParam.replace(/-/g, "+").replace(/_/g, "/");
@@ -17,6 +20,8 @@ export default function OAuthCallbackScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ token?: string; user?: string; next?: string }>();
   const { refreshMe } = useAuth();
+  const { tokens } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -48,43 +53,28 @@ export default function OAuthCallbackScreen() {
 
   return (
     <View style={styles.screen}>
-      <View style={styles.card}>
-        <ActivityIndicator size="large" color="#0f766e" />
-        <Text style={styles.title}>{error ? "Google sign-in failed" : "Finishing sign-in"}</Text>
-        <Text style={styles.subtitle}>
+      <Card variant="elevated" style={styles.card}>
+        <ActivityIndicator size="large" color={tokens.color.primary} />
+        <Text variant="headingLg" center>{error ? "Google sign-in failed" : "Finishing sign-in"}</Text>
+        <Text variant="bodyLg" color="textMuted" center>
           {error ?? "We’re bringing your session back into the app."}
         </Text>
-      </View>
+      </Card>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: ThemeTokens) => ({
   screen: {
     flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 24,
-    backgroundColor: "#f4f8f7",
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+    padding: t.spacing.xl,
+    backgroundColor: t.color.background,
   },
   card: {
-    width: "100%",
-    borderRadius: 28,
-    padding: 24,
-    gap: 14,
-    backgroundColor: "#ffffff",
-    alignItems: "center",
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#0f172a",
-    textAlign: "center",
-  },
-  subtitle: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: "#475569",
-    textAlign: "center",
+    width: "100%" as const,
+    gap: t.spacing.md,
+    alignItems: "center" as const,
   },
 });

@@ -7,6 +7,8 @@ import ReanimatedSwipeable, {
   type SwipeableMethods,
 } from "react-native-gesture-handler/ReanimatedSwipeable";
 
+import { useTheme } from "../theme";
+
 export type SwipeAction = {
   label: string;
   icon: keyof typeof Feather.glyphMap;
@@ -31,16 +33,17 @@ function ActionPanel({
   align: "flex-start" | "flex-end";
   onPress: () => void;
 }) {
+  const { tokens } = useTheme();
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={action.label}
       onPress={onPress}
-      style={[styles.panel, { backgroundColor: action.color, alignItems: align }]}
+      style={[styles.panel, { backgroundColor: action.color, borderRadius: tokens.radii.xl, alignItems: align }]}
     >
       <View style={styles.panelInner}>
-        <Feather name={action.icon} size={22} color="#ffffff" />
-        <Text style={styles.panelLabel}>{action.label}</Text>
+        <Feather name={action.icon} size={22} color={tokens.color.onPrimary} />
+        <Text style={[styles.panelLabel, { color: tokens.color.onPrimary }]}>{action.label}</Text>
       </View>
     </Pressable>
   );
@@ -113,15 +116,13 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     paddingHorizontal: 24,
-    borderRadius: 18,
   },
   panelInner: {
     alignItems: "center",
     gap: 4,
   },
   panelLabel: {
-    color: "#ffffff",
-    fontFamily: "Outfit_700Bold",
+    fontFamily: "Inter_700Bold",
     fontSize: 13,
   },
 });

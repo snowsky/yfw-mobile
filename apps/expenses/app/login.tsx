@@ -1,30 +1,34 @@
 import { useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View, Platform } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, TextInput, View } from "react-native";
 import { Link, Redirect } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { LinearGradient } from "expo-linear-gradient";
-import { BlurView } from "expo-blur";
 
 import { authApi } from "../src/lib/api";
+import { queryKeys } from "../src/lib/queryKeys";
 import { useAuth } from "../src/providers/AuthProvider";
+import { useTheme, useThemedStyles } from "../src/theme";
+import { ThemeTokens } from "../src/theme/types";
+import { Card, Button, Text } from "../src/components/ui";
 
 export default function LoginScreen() {
   const { accessToken, isReady, login } = useAuth();
+  const { tokens } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const serviceConfig = useQuery({
-    queryKey: ["expense-mobile-config"],
+    queryKey: queryKeys.mobileConfig,
     queryFn: authApi.getConfig,
   });
 
   if (!isReady) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#10b981" />
+        <ActivityIndicator size="large" color={tokens.color.primary} />
       </View>
     );
   }
@@ -49,307 +53,177 @@ export default function LoginScreen() {
   }
 
   return (
-    <LinearGradient colors={["#F8FAFC", "#F1F5F9", "#E2E8F0"]} style={styles.screen}>
-      <SafeAreaView style={styles.safeArea} edges={["top", "left", "right"]}>
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-          
-          <View style={styles.heroContainer}>
-            <LinearGradient
-              colors={["rgba(16, 185, 129, 0.2)", "rgba(16, 185, 129, 0)"]}
-              style={styles.heroGlow}
-              start={{ x: 0.5, y: 0 }}
-              end={{ x: 0.5, y: 1 }}
-            />
-            <View style={styles.logoBadge}>
-              <Feather name="aperture" size={28} color="#059669" />
-            </View>
-            <Text style={styles.heroTitle}>{brandTitle}</Text>
-            <Text style={styles.heroBody}>Capture expenses in seconds.</Text>
+    <SafeAreaView style={styles.safeArea} edges={["top", "left", "right"]}>
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <View style={styles.heroContainer}>
+          <View style={styles.logoBadge}>
+            <Feather name="aperture" size={28} color={tokens.color.primary} />
+          </View>
+          <Text variant="headingXl" center>{brandTitle}</Text>
+          <Text variant="bodyLg" color="textMuted" center>Capture expenses in seconds.</Text>
+        </View>
+
+        <Card variant="elevated" style={styles.formCard}>
+          <View>
+            <Text variant="headingLg">Welcome back</Text>
+            <Text variant="bodyMd" color="textMuted">Sign in to your organization account</Text>
           </View>
 
-          <BlurView intensity={Platform.OS === 'ios' ? 40 : 80} tint="light" style={styles.formCard}>
-            <View style={styles.formHeader}>
-              <Text style={styles.formTitle}>Welcome back</Text>
-              <Text style={styles.formSubtitle}>Sign in to your organization account</Text>
+          {serviceConfig.isLoading ? (
+            <View style={styles.infoCard}>
+              <ActivityIndicator size="small" color={tokens.color.primary} />
+              <Text variant="bodyMd" style={{ flex: 1, color: tokens.color.success }}>Loading configuration...</Text>
             </View>
+          ) : null}
 
-            {serviceConfig.isLoading ? (
-              <View style={styles.infoCard}>
-                <ActivityIndicator size="small" color="#059669" />
-                <Text style={styles.infoText}>Loading configuration...</Text>
-              </View>
-            ) : null}
-
-            {serviceConfig.error ? (
-              <View style={styles.errorCard}>
-                <Feather name="alert-circle" size={16} color="#ef4444" />
-                <Text style={styles.errorText}>
-                  {serviceConfig.error instanceof Error
-                    ? serviceConfig.error.message
-                    : "Service not configured."}
-                </Text>
-              </View>
-            ) : null}
-
-            <View style={styles.inputGroup}>
-              <Feather name="mail" size={20} color="#64748b" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                autoCapitalize="none"
-                autoComplete="email"
-                keyboardType="email-address"
-                placeholder="Email address"
-                placeholderTextColor="#94a3b8"
-                textContentType="emailAddress"
-                value={email}
-                onChangeText={setEmail}
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Feather name="lock" size={20} color="#64748b" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Password"
-                placeholderTextColor="#94a3b8"
-                secureTextEntry
-                textContentType="password"
-                value={password}
-                onChangeText={setPassword}
-              />
-            </View>
-
-            {error ? (
-              <View style={styles.errorCard}>
-                <Feather name="alert-circle" size={16} color="#ef4444" />
-                <Text style={styles.errorText}>{error}</Text>
-              </View>
-            ) : null}
-
-            <Pressable
-              style={({ pressed }) => [
-                styles.primaryButton,
-                pressed && styles.primaryButtonPressed,
-                !canSubmit && styles.primaryButtonDisabled
-              ]}
-              onPress={handleLogin}
-              disabled={!canSubmit}
-            >
-              <LinearGradient
-                colors={["#10b981", "#059669"]}
-                style={StyleSheet.absoluteFillObject}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-              />
-              {isSubmitting ? (
-                <ActivityIndicator color="#ffffff" />
-              ) : (
-                <Text style={styles.primaryButtonText}>Sign in</Text>
-              )}
-            </Pressable>
-
-            <View style={styles.divider}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>OR</Text>
-              <View style={styles.dividerLine} />
-            </View>
-
-            {serviceConfig.data?.signup_enabled ? (
-              <View style={styles.footerRow}>
-                <Text style={styles.footerText}>New to YFW?</Text>
-                <Link href={"/signup" as any} asChild>
-                  <Pressable>
-                    <Text style={styles.footerLink}>Create an account</Text>
-                  </Pressable>
-                </Link>
-              </View>
-            ) : (
-              <Text style={styles.footerTextDisabled}>
-                Sign up is disabled for this organization.
+          {serviceConfig.error ? (
+            <View style={styles.errorCard}>
+              <Feather name="alert-circle" size={16} color={tokens.color.danger} />
+              <Text variant="bodyMd" style={{ flex: 1, color: tokens.color.danger }}>
+                {serviceConfig.error instanceof Error ? serviceConfig.error.message : "Service not configured."}
               </Text>
-            )}
-          </BlurView>
-        </ScrollView>
-      </SafeAreaView>
-    </LinearGradient>
+            </View>
+          ) : null}
+
+          <View style={styles.inputGroup}>
+            <Feather name="mail" size={20} color={tokens.color.textMuted} style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              autoCapitalize="none"
+              autoComplete="email"
+              keyboardType="email-address"
+              placeholder="Email address"
+              placeholderTextColor={tokens.color.textSubtle}
+              textContentType="emailAddress"
+              value={email}
+              onChangeText={setEmail}
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Feather name="lock" size={20} color={tokens.color.textMuted} style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Password"
+              placeholderTextColor={tokens.color.textSubtle}
+              secureTextEntry
+              textContentType="password"
+              value={password}
+              onChangeText={setPassword}
+            />
+          </View>
+
+          {error ? (
+            <View style={styles.errorCard}>
+              <Feather name="alert-circle" size={16} color={tokens.color.danger} />
+              <Text variant="bodyMd" style={{ flex: 1, color: tokens.color.danger }}>{error}</Text>
+            </View>
+          ) : null}
+
+          <Button label="Sign in" loading={isSubmitting} disabled={!canSubmit} onPress={handleLogin} fullWidth />
+
+          <View style={styles.divider}>
+            <View style={styles.dividerLine} />
+            <Text variant="bodySm" color="textSubtle" style={{ paddingHorizontal: 16 }}>OR</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          {serviceConfig.data?.signup_enabled ? (
+            <View style={styles.footerRow}>
+              <Text variant="bodyMd" color="textMuted">New to YFW?</Text>
+              <Link href={"/signup" as any} asChild>
+                <Pressable>
+                  <Text variant="bodyMd" color="primary" style={{ fontFamily: "Inter_600SemiBold" }}>Create an account</Text>
+                </Pressable>
+              </Link>
+            </View>
+          ) : (
+            <Text variant="bodySm" color="textSubtle" center>
+              Sign up is disabled for this organization.
+            </Text>
+          )}
+        </Card>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1 },
-  safeArea: { flex: 1 },
-  centered: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#F8FAFC" },
+const makeStyles = (t: ThemeTokens) => ({
+  safeArea: { flex: 1, backgroundColor: t.color.background },
+  centered: { flex: 1, justifyContent: "center" as const, alignItems: "center" as const, backgroundColor: t.color.background },
   content: {
     flexGrow: 1,
-    paddingHorizontal: 24,
+    paddingHorizontal: t.spacing.xl,
     paddingTop: 60,
     paddingBottom: 40,
-    justifyContent: "center",
+    justifyContent: "center" as const,
   },
   heroContainer: {
-    alignItems: "center",
+    alignItems: "center" as const,
     marginBottom: 40,
-    position: "relative",
-  },
-  heroGlow: {
-    position: "absolute",
-    top: -50,
-    width: 200,
-    height: 200,
-    borderRadius: 100,
+    gap: t.spacing.sm,
   },
   logoBadge: {
     width: 64,
     height: 64,
-    borderRadius: 20,
-    backgroundColor: "rgba(16, 185, 129, 0.1)",
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: "rgba(16, 185, 129, 0.2)",
-  },
-  heroTitle: {
-    fontFamily: "Outfit_700Bold",
-    fontSize: 32,
-    color: "#0F172A",
-    marginBottom: 8,
-  },
-  heroBody: {
-    fontFamily: "Outfit_400Regular",
-    fontSize: 16,
-    color: "#475569",
+    borderRadius: t.radii.xl,
+    backgroundColor: t.color.primaryMuted,
+    justifyContent: "center" as const,
+    alignItems: "center" as const,
+    marginBottom: t.spacing.sm,
   },
   formCard: {
-    borderRadius: 32,
-    padding: 28,
-    gap: 20,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.6)",
-    backgroundColor: "rgba(255, 255, 255, 0.6)",
-  },
-  formHeader: { marginBottom: 8 },
-  formTitle: {
-    fontFamily: "Outfit_600SemiBold",
-    fontSize: 24,
-    color: "#0F172A",
-    marginBottom: 4,
-  },
-  formSubtitle: {
-    fontFamily: "Outfit_400Regular",
-    fontSize: 14,
-    color: "#64748B",
-  },
-  inputGroup: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.8)",
-    borderWidth: 1,
-    borderColor: "rgba(0, 0, 0, 0.05)",
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    height: 56,
-  },
-  inputIcon: { marginRight: 12 },
-  input: {
-    flex: 1,
-    fontFamily: "Outfit_400Regular",
-    fontSize: 16,
-    color: "#0F172A",
-    height: "100%",
-  },
-  errorCard: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    backgroundColor: "rgba(239, 68, 68, 0.1)",
-    borderWidth: 1,
-    borderColor: "rgba(239, 68, 68, 0.2)",
-    borderRadius: 12,
-    padding: 12,
-    gap: 8,
-  },
-  errorText: {
-    flex: 1,
-    fontFamily: "Outfit_400Regular",
-    fontSize: 14,
-    color: "#b91c1c",
-    lineHeight: 20,
+    gap: t.spacing.lg,
   },
   infoCard: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    backgroundColor: "rgba(16, 185, 129, 0.1)",
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    backgroundColor: t.color.primaryMuted,
+    borderRadius: t.radii.md,
+    padding: t.spacing.md,
+    gap: t.spacing.sm,
+  },
+  errorCard: {
+    flexDirection: "row" as const,
+    alignItems: "flex-start" as const,
+    backgroundColor: t.color.danger + "1A",
     borderWidth: 1,
-    borderColor: "rgba(16, 185, 129, 0.2)",
-    borderRadius: 12,
-    padding: 12,
-    gap: 8,
+    borderColor: t.color.danger + "33",
+    borderRadius: t.radii.md,
+    padding: t.spacing.md,
+    gap: t.spacing.sm,
   },
-  infoText: {
-    flex: 1,
-    fontFamily: "Outfit_400Regular",
-    fontSize: 14,
-    color: "#047857",
-    lineHeight: 20,
-  },
-  primaryButton: {
+  inputGroup: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    backgroundColor: t.color.surfaceMuted,
+    borderWidth: 1,
+    borderColor: t.color.border,
+    borderRadius: t.radii.lg,
+    paddingHorizontal: t.spacing.md,
     height: 56,
-    borderRadius: 16,
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 8,
-    shadowColor: "#10b981",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
-    overflow: "hidden",
   },
-  primaryButtonPressed: { transform: [{ scale: 0.98 }] },
-  primaryButtonDisabled: { opacity: 0.5 },
-  primaryButtonText: {
-    fontFamily: "Outfit_600SemiBold",
+  inputIcon: { marginRight: t.spacing.md },
+  input: {
+    flex: 1,
+    fontFamily: "Inter_400Regular",
     fontSize: 16,
-    color: "#ffffff",
+    color: t.color.text,
+    height: "100%" as const,
   },
   divider: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 8,
-    marginBottom: 8,
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
   },
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.05)",
-  },
-  dividerText: {
-    fontFamily: "Outfit_500Medium",
-    fontSize: 12,
-    color: "#94a3b8",
-    paddingHorizontal: 16,
+    backgroundColor: t.color.border,
   },
   footerRow: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
+    flexDirection: "row" as const,
+    justifyContent: "center" as const,
+    alignItems: "center" as const,
     gap: 6,
-  },
-  footerText: {
-    fontFamily: "Outfit_400Regular",
-    fontSize: 14,
-    color: "#64748b",
-  },
-  footerLink: {
-    fontFamily: "Outfit_600SemiBold",
-    fontSize: 14,
-    color: "#059669",
-  },
-  footerTextDisabled: {
-    fontFamily: "Outfit_400Regular",
-    fontSize: 13,
-    color: "#94a3b8",
-    textAlign: "center",
   },
 });

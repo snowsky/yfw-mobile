@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, View } from "react-native";
 import { useLocalSearchParams, usePathname, useRouter } from "expo-router";
 
 import { setAccessToken, setStoredUser } from "../src/lib/auth-storage";
 import { useAuth } from "../src/providers/AuthProvider";
+import { useTheme, useThemedStyles } from "../src/theme";
+import { ThemeTokens } from "../src/theme/types";
+import { Card, Text } from "../src/components/ui";
 
 function decodeUserParam(userParam: string) {
   const normalized = userParam.replace(/-/g, "+").replace(/_/g, "/");
@@ -16,6 +19,8 @@ export default function NotFoundScreen() {
   const pathname = usePathname();
   const params = useLocalSearchParams<{ token?: string; user?: string; next?: string }>();
   const { refreshMe } = useAuth();
+  const { tokens } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -48,47 +53,32 @@ export default function NotFoundScreen() {
 
   return (
     <View style={styles.screen}>
-      <View style={styles.card}>
-        {isOAuthFallback ? <ActivityIndicator size="large" color="#0f766e" /> : null}
-        <Text style={styles.title}>
+      <Card variant="elevated" style={styles.card}>
+        {isOAuthFallback ? <ActivityIndicator size="large" color={tokens.color.primary} /> : null}
+        <Text variant="headingLg" center>
           {isOAuthFallback ? "Finishing sign-in" : "Page not found"}
         </Text>
-        <Text style={styles.subtitle}>
+        <Text variant="bodyLg" color="textMuted" center>
           {isOAuthFallback
             ? message ?? "We caught an OAuth redirect on Expo’s fallback route and are sending you back into the app."
             : `No route matched ${pathname}.`}
         </Text>
-      </View>
+      </Card>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: ThemeTokens) => ({
   screen: {
     flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 24,
-    backgroundColor: "#f4f8f7",
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+    padding: t.spacing.xl,
+    backgroundColor: t.color.background,
   },
   card: {
-    width: "100%",
-    borderRadius: 28,
-    padding: 24,
-    gap: 14,
-    backgroundColor: "#ffffff",
-    alignItems: "center",
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#0f172a",
-    textAlign: "center",
-  },
-  subtitle: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: "#475569",
-    textAlign: "center",
+    width: "100%" as const,
+    gap: t.spacing.md,
+    alignItems: "center" as const,
   },
 });

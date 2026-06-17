@@ -1,5 +1,5 @@
 import { forwardRef, useImperativeHandle } from "react";
-import { Dimensions, StyleSheet, Text, View } from "react-native";
+import { Dimensions, Text, View } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
@@ -12,6 +12,10 @@ import Animated, {
   Extrapolation,
 } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
+
+import { useTheme, useThemedStyles } from "../theme";
+import { ThemeTokens } from "../theme/types";
+import { formatMoney, formatDate } from "../lib/format";
 
 const { width: SCREEN_W } = Dimensions.get("window");
 const SWIPE_THRESHOLD = SCREEN_W * 0.35;
@@ -33,26 +37,12 @@ type SwipeCardProps = {
   onOpenDetail: () => void;
 };
 
-function formatMoney(amount: number, currency = "USD") {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 2,
-  }).format(amount ?? 0);
-}
-
-function formatDateLabel(dateString: string) {
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(new Date(`${dateString}T00:00:00`));
-}
-
 export const SwipeCard = forwardRef<SwipeCardHandle, SwipeCardProps>(function SwipeCard(
   { item, onDecision, onOpenDetail },
   ref
 ) {
+  const { tokens } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
 
@@ -124,7 +114,7 @@ export const SwipeCard = forwardRef<SwipeCardHandle, SwipeCardProps>(function Sw
         style={[styles.card, cardStyle]}
         accessibilityLabel={`Expense ${formatMoney(item.amount, item.currency)}, ${
           item.vendor ?? "unknown vendor"
-        }, ${item.category}, ${formatDateLabel(item.expense_date)}`}
+        }, ${item.category}, ${formatDate(item.expense_date)}`}
       >
         <Animated.View
           style={[styles.badge, styles.badgeApprove, approveStyle]}
@@ -147,10 +137,10 @@ export const SwipeCard = forwardRef<SwipeCardHandle, SwipeCardProps>(function Sw
         </Text>
         <View style={styles.metaRow}>
           <Text style={styles.metaText}>{item.category}</Text>
-          <Text style={styles.metaText}>{formatDateLabel(item.expense_date)}</Text>
+          <Text style={styles.metaText}>{formatDate(item.expense_date)}</Text>
         </View>
         <View style={styles.reviewPill}>
-          <Feather name="edit-3" size={14} color="#d97706" />
+          <Feather name="edit-3" size={14} color={tokens.color.warning} />
           <Text style={styles.reviewPillText}>Changes detected — swipe to decide</Text>
         </View>
         <Text style={styles.hint}>Swipe right to approve · left to reject · tap for details</Text>
@@ -159,50 +149,46 @@ export const SwipeCard = forwardRef<SwipeCardHandle, SwipeCardProps>(function Sw
   );
 });
 
-const styles = StyleSheet.create({
+const makeStyles = (t: ThemeTokens) => ({
   card: {
     width: SCREEN_W - 48,
     minHeight: 360,
-    borderRadius: 24,
-    backgroundColor: "#ffffff",
-    padding: 24,
-    gap: 12,
-    justifyContent: "center",
-    shadowColor: "#0f172a",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.12,
-    shadowRadius: 20,
-    elevation: 6,
+    borderRadius: t.radii["2xl"],
+    backgroundColor: t.color.surface,
+    padding: t.spacing.xl,
+    gap: t.spacing.md,
+    justifyContent: "center" as const,
+    ...t.shadow.strong,
   },
   badge: {
-    position: "absolute",
+    position: "absolute" as const,
     top: 24,
     paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: 10,
+    borderRadius: t.radii.md,
     borderWidth: 3,
   },
-  badgeApprove: { right: 24, borderColor: "#059669", transform: [{ rotate: "12deg" }] },
-  badgeReject: { left: 24, borderColor: "#dc2626", transform: [{ rotate: "-12deg" }] },
-  badgeApproveText: { fontFamily: "Outfit_700Bold", fontSize: 20, color: "#059669" },
-  badgeRejectText: { fontFamily: "Outfit_700Bold", fontSize: 20, color: "#dc2626" },
-  amount: { fontFamily: "Outfit_700Bold", fontSize: 40, color: "#0F172A" },
-  vendor: { fontFamily: "Outfit_600SemiBold", fontSize: 18, color: "#475569" },
-  metaRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 4 },
-  metaText: { fontFamily: "Outfit_500Medium", fontSize: 14, color: "#64748b" },
+  badgeApprove: { right: 24, borderColor: t.color.success, transform: [{ rotate: "12deg" }] },
+  badgeReject: { left: 24, borderColor: t.color.danger, transform: [{ rotate: "-12deg" }] },
+  badgeApproveText: { fontFamily: "Inter_700Bold", fontSize: 20, color: t.color.success },
+  badgeRejectText: { fontFamily: "Inter_700Bold", fontSize: 20, color: t.color.danger },
+  amount: { fontFamily: "Inter_700Bold", fontSize: 40, color: t.color.text },
+  vendor: { fontFamily: "Inter_600SemiBold", fontSize: 18, color: t.color.textMuted },
+  metaRow: { flexDirection: "row" as const, justifyContent: "space-between" as const, marginTop: 4 },
+  metaText: { fontFamily: "Inter_500Medium", fontSize: 14, color: t.color.textMuted },
   reviewPill: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
     gap: 6,
-    alignSelf: "flex-start",
-    backgroundColor: "#fffbeb",
+    alignSelf: "flex-start" as const,
+    backgroundColor: t.color.warning + "1A",
     borderWidth: 1,
-    borderColor: "rgba(217, 119, 6, 0.15)",
-    borderRadius: 999,
+    borderColor: t.color.warning + "26",
+    borderRadius: t.radii.full,
     paddingHorizontal: 12,
     paddingVertical: 8,
     marginTop: 8,
   },
-  reviewPillText: { fontFamily: "Outfit_600SemiBold", fontSize: 13, color: "#d97706" },
-  hint: { fontFamily: "Outfit_400Regular", fontSize: 12, color: "#94a3b8", marginTop: 12 },
+  reviewPillText: { fontFamily: "Inter_600SemiBold", fontSize: 13, color: t.color.warning },
+  hint: { fontFamily: "Inter_400Regular", fontSize: 12, color: t.color.textSubtle, marginTop: 12 },
 });

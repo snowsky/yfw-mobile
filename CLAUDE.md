@@ -54,11 +54,15 @@ Google SSO runs entirely in the **backend's** browser flow. The backend redirect
 
 ### Screens
 
-`apps/expenses/app/` follows expo-router file conventions. Tabs live in `app/(tabs)/`: `capture` (voice + camera intake), `inbox`, `timeline`, `insights`, `settings`. Each screen is self-contained — there are no shared UI primitives yet, so styles are duplicated locally. The brand color is teal/emerald (`#059669` / `#10b981`); the Outfit font family is loaded in `_layout.tsx` and referenced as `Outfit_400Regular` etc. throughout.
+`apps/expenses/app/` follows expo-router file conventions. Tabs live in `app/(tabs)/`: `capture` (voice + camera intake), `inbox`, `timeline`, `insights`, `settings`.
+
+### Design system
+
+There is a token-based design system in `src/theme/` and a shared component library in `src/components/ui/`. Screens consume tokens via `useThemedStyles(makeStyles)` (where `makeStyles(tokens) => StyleSheet`) and compose UI from `Text, Button, Card, Input, Badge, Screen, PageHeader, EmptyState, MetricCard, FilterChip, SegmentedControl, Avatar, Divider`. **Never hardcode hex** — all colors come from `tokens.color.*`; a grep gate keeps raw hex out of `app/` and `src/components/` (only `src/theme/themes.ts` holds literals). The brand matches the YFW web UI (`invoice_app/ui`): **Inter** font (loaded in `_layout.tsx` as `Inter_400Regular` etc.) and a **deep forest-green** primary (`#0E7A4D` light / `#3ECF8E` dark) on warm-paper surfaces. `ThemeProvider` supports light/dark/system with an in-app picker in Settings, persisted to AsyncStorage.
 
 ### Data layer
 
-`@tanstack/react-query` is set up at the root with a default `QueryClient`. There is no central key registry — each screen defines its own `queryKey`. When adding mutations that should invalidate lists, target the matching keys used in `inbox`/`timeline`/`insights`.
+`@tanstack/react-query` is set up at the root with a default `QueryClient`. Query keys live in a central registry, `src/lib/queryKeys.ts` (`queryKeys.timeline`, `.inbox`, `.insights`, `.expenseDetail(id)`, `.expenseDigest`, `.mobileConfig`). All expense data is nested under the `queryKeys.expenses` root, so a mutation can invalidate `queryKeys.expenses` to refresh timeline/inbox/insights/detail at once. Add new keys to the registry rather than inlining arrays. Shared display formatters live in `src/lib/format.ts` (`formatMoney`, `formatDate`, `formatDateShort`).
 
 ## When adding shared code
 
