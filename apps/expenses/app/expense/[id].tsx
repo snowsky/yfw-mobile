@@ -16,6 +16,7 @@ import { useTheme, useThemedStyles } from "../../src/theme";
 import { ThemeTokens, ColorTokens } from "../../src/theme/types";
 import { Input, Button, Text } from "../../src/components/ui";
 import { formatMoney, formatDate } from "../../src/lib/format";
+import { queryKeys } from "../../src/lib/queryKeys";
 
 type FormState = {
   amount: string;
@@ -65,7 +66,7 @@ export default function ExpenseDetailScreen() {
   const expenseId = Number(idParam);
 
   const query = useQuery({
-    queryKey: ["expenses", "detail", expenseId],
+    queryKey: queryKeys.expenseDetail(expenseId),
     queryFn: () => expensesApi.getExpense(expenseId),
     enabled: Number.isFinite(expenseId),
   });
@@ -78,9 +79,9 @@ export default function ExpenseDetailScreen() {
   }, [query.data]);
 
   function invalidateAll(updated?: Expense) {
-    queryClient.invalidateQueries({ queryKey: ["expenses"] });
+    queryClient.invalidateQueries({ queryKey: queryKeys.expenses });
     if (updated) {
-      queryClient.setQueryData(["expenses", "detail", expenseId], updated);
+      queryClient.setQueryData(queryKeys.expenseDetail(expenseId), updated);
     }
   }
 
@@ -123,7 +124,7 @@ export default function ExpenseDetailScreen() {
   const deleteMutation = useMutation({
     mutationFn: () => expensesApi.deleteExpense(expenseId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["expenses"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.expenses });
       router.back();
     },
     onError: (err) => setActionError(err instanceof Error ? err.message : "Delete failed."),

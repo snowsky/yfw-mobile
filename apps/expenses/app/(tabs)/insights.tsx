@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
 
 import { expensesApi } from "../../src/lib/api";
+import { queryKeys } from "../../src/lib/queryKeys";
 import { useAuth } from "../../src/providers/AuthProvider";
 import { useTheme, useThemedStyles } from "../../src/theme";
 import { ThemeTokens, ColorTokens } from "../../src/theme/types";
@@ -24,7 +25,7 @@ export default function InsightsScreen() {
   const { tokens } = useTheme();
   const styles = useThemedStyles(makeStyles);
   const query = useQuery({
-    queryKey: ["expenses", "insights"],
+    queryKey: queryKeys.insights,
     queryFn: expensesApi.getSummary,
     enabled: Boolean(accessToken),
   });

@@ -12,6 +12,7 @@ import { useTheme, useThemedStyles } from "../src/theme";
 import { ThemeTokens } from "../src/theme/types";
 import { Text, Button } from "../src/components/ui";
 import { formatMoney } from "../src/lib/format";
+import { queryKeys } from "../src/lib/queryKeys";
 
 const { width: SCREEN_W } = Dimensions.get("window");
 
@@ -26,7 +27,7 @@ export default function ReviewScreen() {
   const topCardRef = useRef<SwipeCardHandle>(null);
 
   const query = useQuery({
-    queryKey: ["expenses", "inbox"],
+    queryKey: queryKeys.inbox,
     queryFn: expensesApi.getExpenses,
     enabled: Boolean(accessToken),
   });
@@ -84,7 +85,7 @@ export default function ReviewScreen() {
         d.decision === "approve" ? expensesApi.acceptReview(d.id) : expensesApi.rejectReview(d.id)
       )
     );
-    queryClient.invalidateQueries({ queryKey: ["expenses"] });
+    queryClient.invalidateQueries({ queryKey: queryKeys.expenses });
     const failed = results.filter((r) => r.status === "rejected").length;
     if (failed > 0) {
       setCommitting(false);

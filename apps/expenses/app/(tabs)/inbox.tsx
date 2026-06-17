@@ -6,6 +6,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 
 import { expensesApi } from "../../src/lib/api";
+import { queryKeys } from "../../src/lib/queryKeys";
 import { useAuth } from "../../src/providers/AuthProvider";
 import { SwipeableRow } from "../../src/components/SwipeableRow";
 import { useTheme, useThemedStyles } from "../../src/theme";
@@ -48,7 +49,7 @@ export default function InboxScreen() {
   };
 
   const query = useQuery({
-    queryKey: ["expenses", "inbox"],
+    queryKey: queryKeys.inbox,
     queryFn: expensesApi.getExpenses,
     enabled: Boolean(accessToken),
   });
@@ -56,42 +57,42 @@ export default function InboxScreen() {
   const approveMutation = useMutation({
     mutationFn: (id: number) => expensesApi.acceptReview(id),
     onMutate: async (id: number) => {
-      await queryClient.cancelQueries({ queryKey: ["expenses", "inbox"] });
-      const previous = queryClient.getQueryData(["expenses", "inbox"]);
-      queryClient.setQueryData(["expenses", "inbox"], (old: any) =>
+      await queryClient.cancelQueries({ queryKey: queryKeys.inbox });
+      const previous = queryClient.getQueryData(queryKeys.inbox);
+      queryClient.setQueryData(queryKeys.inbox, (old: any) =>
         old ? { ...old, expenses: old.expenses.filter((e: any) => e.id !== id) } : old
       );
       return { previous };
     },
     onError: (_err, _id, context: any) => {
       if (context?.previous) {
-        queryClient.setQueryData(["expenses", "inbox"], context.previous);
+        queryClient.setQueryData(queryKeys.inbox, context.previous);
       }
     },
     onSettled: () => {
       setPendingId(null);
-      queryClient.invalidateQueries({ queryKey: ["expenses"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.expenses });
     },
   });
 
   const rejectMutation = useMutation({
     mutationFn: (id: number) => expensesApi.rejectReview(id),
     onMutate: async (id: number) => {
-      await queryClient.cancelQueries({ queryKey: ["expenses", "inbox"] });
-      const previous = queryClient.getQueryData(["expenses", "inbox"]);
-      queryClient.setQueryData(["expenses", "inbox"], (old: any) =>
+      await queryClient.cancelQueries({ queryKey: queryKeys.inbox });
+      const previous = queryClient.getQueryData(queryKeys.inbox);
+      queryClient.setQueryData(queryKeys.inbox, (old: any) =>
         old ? { ...old, expenses: old.expenses.filter((e: any) => e.id !== id) } : old
       );
       return { previous };
     },
     onError: (_err, _id, context: any) => {
       if (context?.previous) {
-        queryClient.setQueryData(["expenses", "inbox"], context.previous);
+        queryClient.setQueryData(queryKeys.inbox, context.previous);
       }
     },
     onSettled: () => {
       setPendingId(null);
-      queryClient.invalidateQueries({ queryKey: ["expenses"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.expenses });
     },
   });
 

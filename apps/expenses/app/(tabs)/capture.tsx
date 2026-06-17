@@ -15,6 +15,7 @@ import * as Haptics from "expo-haptics";
 import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming } from "react-native-reanimated";
 
 import { expensesApi, type ExpenseDraft, type ParsedVoiceExpense } from "../../src/lib/api";
+import { queryKeys } from "../../src/lib/queryKeys";
 import { useAuth } from "../../src/providers/AuthProvider";
 import { useTheme, useThemedStyles } from "../../src/theme";
 import { ThemeTokens } from "../../src/theme/types";
@@ -230,7 +231,7 @@ export default function CaptureScreen() {
         notes: voiceDraft.notes ?? (voiceDraft.transcript ? `Voice: "${voiceDraft.transcript}"` : null),
       };
       await expensesApi.createExpense(draft);
-      queryClient.invalidateQueries({ queryKey: ["expenses"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.expenses });
       setVoicePhase("saved");
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     } catch (e) {
@@ -323,7 +324,7 @@ export default function CaptureScreen() {
       }
 
       await expensesApi.uploadReceipt(expenseId, receiptUri, receiptFileName, receiptMime);
-      queryClient.invalidateQueries({ queryKey: ["expenses"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.expenses });
       setReceiptPhase("done");
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     } catch (e) {

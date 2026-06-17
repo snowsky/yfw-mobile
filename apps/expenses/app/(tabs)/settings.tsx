@@ -3,6 +3,7 @@ import { Feather } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { preferencesApi, type ExpenseDigestSelection } from "../../src/lib/api";
+import { queryKeys } from "../../src/lib/queryKeys";
 import { useAuth } from "../../src/providers/AuthProvider";
 import { useTheme, useThemedStyles } from "../../src/theme";
 import { ThemeTokens, ThemeMode } from "../../src/theme/types";
@@ -29,7 +30,7 @@ export default function SettingsScreen() {
   const { tokens, mode, setMode } = useTheme();
   const styles = useThemedStyles(makeStyles);
   const query = useQuery({
-    queryKey: ["preferences", "expense-digest"],
+    queryKey: queryKeys.expenseDigest,
     queryFn: preferencesApi.getExpenseDigestPreference,
     enabled: Boolean(accessToken),
   });
@@ -37,7 +38,7 @@ export default function SettingsScreen() {
   const mutation = useMutation({
     mutationFn: preferencesApi.updateExpenseDigestPreference,
     onSuccess: (data) => {
-      queryClient.setQueryData(["preferences", "expense-digest"], data);
+      queryClient.setQueryData(queryKeys.expenseDigest, data);
     },
   });
 

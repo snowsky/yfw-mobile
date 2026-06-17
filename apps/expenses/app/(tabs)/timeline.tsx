@@ -13,6 +13,7 @@ import { useTheme, useThemedStyles } from "../../src/theme";
 import { ColorTokens } from "../../src/theme/types";
 import { Text, Input, FilterChip, Button, Divider } from "../../src/components/ui";
 import { formatMoney, formatDate } from "../../src/lib/format";
+import { queryKeys } from "../../src/lib/queryKeys";
 
 // The list query yields the *input* shape of the expense-list schema (e.g.
 // `currency` is optional because the zod schema defaults it), which is wider
@@ -61,7 +62,7 @@ export default function TimelineScreen() {
   const [activeFilter, setActiveFilter] = useState<(typeof filters)[number]["key"]>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const query = useQuery({
-    queryKey: ["expenses", "timeline"],
+    queryKey: queryKeys.timeline,
     queryFn: expensesApi.getExpenses,
     enabled: Boolean(accessToken),
   });
@@ -72,7 +73,7 @@ export default function TimelineScreen() {
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => expensesApi.deleteExpense(id),
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ["expenses"] }),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: queryKeys.expenses }),
   });
 
   const commitDelete = (item: TimelineExpense) => {

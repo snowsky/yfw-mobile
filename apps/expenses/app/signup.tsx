@@ -6,6 +6,7 @@ import { Feather } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { authApi } from "../src/lib/api";
+import { queryKeys } from "../src/lib/queryKeys";
 import { useAuth } from "../src/providers/AuthProvider";
 import { useTheme, useThemedStyles } from "../src/theme";
 import { ThemeTokens } from "../src/theme/types";
@@ -16,7 +17,7 @@ export default function SignupScreen() {
   const { tokens } = useTheme();
   const styles = useThemedStyles(makeStyles);
   const serviceConfig = useQuery({
-    queryKey: ["expense-mobile-config"],
+    queryKey: queryKeys.mobileConfig,
     queryFn: authApi.getConfig,
   });
   const [firstName, setFirstName] = useState("");
