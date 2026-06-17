@@ -22,3 +22,5 @@ export { Divider } from "./Divider";
 export { SegmentedControl } from "./SegmentedControl";
 export type { SegmentedControlProps, SegmentOption } from "./SegmentedControl";
 export { Avatar } from "./Avatar";
+export { Entrance } from "./Entrance";
+export type { EntranceProps } from "./Entrance";

@@ -11,7 +11,7 @@ import { SwipeableRow } from "../../src/components/SwipeableRow";
 import { UndoToast } from "../../src/components/UndoToast";
 import { useTheme, useThemedStyles } from "../../src/theme";
 import { ColorTokens } from "../../src/theme/types";
-import { Text, Input, FilterChip, Button, Divider } from "../../src/components/ui";
+import { Text, Input, FilterChip, Button, Divider, Entrance } from "../../src/components/ui";
 import { formatMoney, formatDate } from "../../src/lib/format";
 import { queryKeys } from "../../src/lib/queryKeys";
 
@@ -240,12 +240,12 @@ export default function TimelineScreen() {
         ) : (
           expenses
             .filter((item) => item.id !== pendingDelete?.id)
-            .map((item) => {
+            .map((item, i) => {
               const meta = getCategoryMeta(item.category);
               const catColor = tokens.color[meta.colorKey];
               return (
+                <Entrance key={item.id} index={i}>
                 <SwipeableRow
-                  key={item.id}
                   rightAction={{
                     label: "Delete",
                     icon: "trash-2",
@@ -276,6 +276,7 @@ export default function TimelineScreen() {
                     </View>
                   </Pressable>
                 </SwipeableRow>
+                </Entrance>
               );
             })
         )}
@@ -292,7 +293,7 @@ export default function TimelineScreen() {
 const makeStyles = (t: import("../../src/theme/types").ThemeTokens) => ({
   safeArea: { flex: 1, backgroundColor: t.color.background },
   screen: { flex: 1, backgroundColor: t.color.background },
-  content: { padding: t.spacing.lg, gap: t.spacing.sm, paddingBottom: 120 },
+  content: { padding: t.spacing.lg, gap: t.spacing.md, paddingBottom: 120 },
   headerCard: {
     borderRadius: t.radii.xl,
     padding: t.spacing.lg,
@@ -340,15 +341,13 @@ const makeStyles = (t: import("../../src/theme/types").ThemeTokens) => ({
   },
   card: {
     borderRadius: t.radii.lg,
-    paddingVertical: t.spacing.md,
-    paddingHorizontal: t.spacing.md,
+    padding: t.spacing.lg,
     backgroundColor: t.color.surface,
-    borderWidth: 1,
-    borderColor: t.color.border,
     flexDirection: "row" as const,
     alignItems: "center" as const,
+    ...t.shadow.soft,
   },
-  cardPressed: { backgroundColor: t.color.surfaceMuted },
+  cardPressed: { opacity: 0.85 },
   categoryIconCircle: {
     width: 38,
     height: 38,

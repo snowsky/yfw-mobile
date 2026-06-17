@@ -51,17 +51,31 @@ const darkColors: ColorTokens = {
   catMarketing: "#F07CB0",
 };
 
+// Premium depth: low-opacity, large-radius, diffuse shadows that read as a
+// soft float rather than a hard drop.
 const lightShadow = (color: string): ThemeTokens["shadow"] => ({
-  soft:   { shadowColor: color, shadowOpacity: 0.06, shadowRadius: 8,  shadowOffset: { width: 0, height: 2 }, elevation: 2 },
-  medium: { shadowColor: color, shadowOpacity: 0.10, shadowRadius: 16, shadowOffset: { width: 0, height: 4 }, elevation: 5 },
-  strong: { shadowColor: color, shadowOpacity: 0.16, shadowRadius: 28, shadowOffset: { width: 0, height: 10 }, elevation: 10 },
+  soft:   { shadowColor: color, shadowOpacity: 0.05, shadowRadius: 12, shadowOffset: { width: 0, height: 4 },  elevation: 2 },
+  medium: { shadowColor: color, shadowOpacity: 0.08, shadowRadius: 24, shadowOffset: { width: 0, height: 8 },  elevation: 6 },
+  strong: { shadowColor: color, shadowOpacity: 0.12, shadowRadius: 40, shadowOffset: { width: 0, height: 16 }, elevation: 12 },
 });
 
 const darkShadow = (): ThemeTokens["shadow"] => ({
-  soft:   { shadowColor: "#000000", shadowOpacity: 0.30, shadowRadius: 8,  shadowOffset: { width: 0, height: 2 }, elevation: 2 },
-  medium: { shadowColor: "#000000", shadowOpacity: 0.40, shadowRadius: 16, shadowOffset: { width: 0, height: 4 }, elevation: 5 },
-  strong: { shadowColor: "#000000", shadowOpacity: 0.55, shadowRadius: 28, shadowOffset: { width: 0, height: 10 }, elevation: 10 },
+  soft:   { shadowColor: "#000000", shadowOpacity: 0.28, shadowRadius: 12, shadowOffset: { width: 0, height: 4 },  elevation: 2 },
+  medium: { shadowColor: "#000000", shadowOpacity: 0.38, shadowRadius: 24, shadowOffset: { width: 0, height: 8 },  elevation: 6 },
+  strong: { shadowColor: "#000000", shadowOpacity: 0.50, shadowRadius: 40, shadowOffset: { width: 0, height: 16 }, elevation: 12 },
 });
+
+const lightGradient: ThemeTokens["gradient"] = {
+  brand: ["#15A06A", "#0B6B43"],
+  surface: ["#FFFFFF", "#F6F4EF"],
+  heroTint: ["#EAF4EE", "#FAF9F7"],
+};
+
+const darkGradient: ThemeTokens["gradient"] = {
+  brand: ["#46D89A", "#2BB07A"],
+  surface: ["#23221A", "#1A1913"],
+  heroTint: ["#1B3329", "#1E1D16"],
+};
 
 function makeTheme(scheme: ColorScheme): ThemeTokens {
   const color = scheme === "light" ? lightColors : darkColors;
@@ -73,6 +87,7 @@ function makeTheme(scheme: ColorScheme): ThemeTokens {
     typography,
     durations,
     shadow: scheme === "light" ? lightShadow("#1A1A18") : darkShadow(),
+    gradient: scheme === "light" ? lightGradient : darkGradient,
   };
 }
 
