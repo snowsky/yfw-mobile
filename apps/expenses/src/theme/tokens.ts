@@ -11,14 +11,14 @@ export const spacing = {
   "3xl": 48,
 } as const;
 
-// Radius scale anchored to the web UI's 8px base (rounded-lg) for a tighter,
-// printed-document feel — one notch smaller than a typical "app" rounding.
+// Radius scale tuned for a premium, layered feel — softer corners on cards
+// and surfaces while keeping controls crisp.
 export const radii = {
-  sm: 4,
-  md: 6,
-  lg: 8,
-  xl: 12,
-  "2xl": 16,
+  sm: 6,
+  md: 8,
+  lg: 12,
+  xl: 18,
+  "2xl": 24,
   full: 999,
 } as const;
 
@@ -47,7 +47,7 @@ export const typography: Record<
   | "caption",
   TypeVariant
 > = {
-  display:   { fontSize: 34, lineHeight: 40, fontFamily: fontFamily.bold,     letterSpacing: -0.5 },
+  display:   { fontSize: 40, lineHeight: 44, fontFamily: fontFamily.bold,     letterSpacing: -1 },
   headingXl: { fontSize: 28, lineHeight: 34, fontFamily: fontFamily.bold,     letterSpacing: -0.4 },
   headingLg: { fontSize: 22, lineHeight: 28, fontFamily: fontFamily.semibold, letterSpacing: -0.3 },
   headingMd: { fontSize: 18, lineHeight: 24, fontFamily: fontFamily.semibold, letterSpacing: -0.2 },

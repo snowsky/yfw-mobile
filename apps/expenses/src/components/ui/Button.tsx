@@ -1,5 +1,7 @@
 import React from "react";
 import { ActivityIndicator, Pressable, StyleSheet, View, ViewStyle } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
 
 import { useTheme } from "../../theme";
 import { Text } from "./Text";
@@ -20,8 +22,10 @@ export interface ButtonProps {
   style?: ViewStyle;
 }
 
-const HEIGHT: Record<Size, number> = { sm: 36, md: 44, lg: 52 };
-const PAD_X: Record<Size, number> = { sm: 12, md: 16, lg: 20 };
+const HEIGHT: Record<Size, number> = { sm: 36, md: 46, lg: 54 };
+const PAD_X: Record<Size, number> = { sm: 14, md: 18, lg: 22 };
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 export function Button({
   label, onPress, variant = "primary", size = "md",
@@ -30,6 +34,8 @@ export function Button({
   const { tokens } = useTheme();
   const c = tokens.color;
   const isDisabled = disabled || loading;
+  const scale = useSharedValue(1);
+  const animatedStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
   const bg: Record<Variant, string> = {
     primary: c.primary,
@@ -46,27 +52,40 @@ export function Button({
     destructive: "onPrimary",
   };
   const border = variant === "outline" ? c.primary : "transparent";
+  const useGradient = variant === "primary";
 
   return (
-    <Pressable
+    <AnimatedPressable
       onPress={onPress}
       disabled={isDisabled}
-      style={({ pressed }) => [
+      onPressIn={() => { scale.value = withSpring(0.97, { damping: 18, stiffness: 320 }); }}
+      onPressOut={() => { scale.value = withSpring(1, { damping: 18, stiffness: 320 }); }}
+      style={[
         styles.base,
         {
           height: HEIGHT[size],
           paddingHorizontal: PAD_X[size],
-          backgroundColor: bg[variant],
+          backgroundColor: useGradient ? "transparent" : bg[variant],
           borderColor: border,
           borderWidth: variant === "outline" ? 1 : 0,
           borderRadius: tokens.radii.lg,
           opacity: isDisabled ? 0.5 : 1,
-          transform: [{ scale: pressed ? 0.98 : 1 }],
+          overflow: "hidden",
           width: fullWidth ? "100%" : undefined,
+          ...(variant === "primary" || variant === "destructive" ? tokens.shadow.soft : null),
         },
+        animatedStyle,
         style,
       ]}
     >
+      {useGradient ? (
+        <LinearGradient
+          colors={tokens.gradient.brand as [string, string]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+      ) : null}
       {loading ? (
         <ActivityIndicator color={fg[variant] === "onPrimary" ? c.onPrimary : c.primary} />
       ) : (
@@ -78,7 +97,7 @@ export function Button({
           {rightIcon ? <View style={styles.icon}>{rightIcon}</View> : null}
         </View>
       )}
-    </Pressable>
+    </AnimatedPressable>
   );
 }
 

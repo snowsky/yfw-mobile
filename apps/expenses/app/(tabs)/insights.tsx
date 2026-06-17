@@ -1,13 +1,14 @@
-import { Pressable, View } from "react-native";
+import { Pressable, View, StyleSheet } from "react-native";
 import { useQuery } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 
 import { expensesApi } from "../../src/lib/api";
 import { queryKeys } from "../../src/lib/queryKeys";
 import { useAuth } from "../../src/providers/AuthProvider";
 import { useTheme, useThemedStyles } from "../../src/theme";
 import { ThemeTokens, ColorTokens } from "../../src/theme/types";
-import { Screen, Card, MetricCard, Text } from "../../src/components/ui";
+import { Screen, Card, MetricCard, Text, Entrance } from "../../src/components/ui";
 
 function asCurrency(value: number | undefined, currency = "USD") {
   return new Intl.NumberFormat("en-US", {
@@ -74,6 +75,12 @@ export default function InsightsScreen() {
   return (
     <Screen scroll contentContainerStyle={{ gap: tokens.spacing.lg }}>
       <View style={styles.heroCard}>
+        <LinearGradient
+          colors={tokens.gradient.heroTint as [string, string]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
         <Text variant="bodySm" color="textMuted">This month</Text>
         <Text variant="display" color="primary">{asCurrency(current?.total_amount)}</Text>
         <View style={styles.heroMetaRow}>
@@ -104,19 +111,20 @@ export default function InsightsScreen() {
           </Pressable>
         </Card>
       ) : (
-        cards.map((card) => (
-          <MetricCard
-            key={card.title}
-            label={card.title}
-            value={card.value}
-            change={card.detail}
-            changeStatus={card.changeStatus ?? "neutral"}
-            icon={
-              <View style={[styles.metricIconWrap, { backgroundColor: card.iconColor + "1A" }]}>
-                <Feather name={card.icon} size={20} color={card.iconColor} />
-              </View>
-            }
-          />
+        cards.map((card, i) => (
+          <Entrance key={card.title} index={i}>
+            <MetricCard
+              label={card.title}
+              value={card.value}
+              change={card.detail}
+              changeStatus={card.changeStatus ?? "neutral"}
+              icon={
+                <View style={[styles.metricIconWrap, { backgroundColor: card.iconColor + "1A" }]}>
+                  <Feather name={card.icon} size={20} color={card.iconColor} />
+                </View>
+              }
+            />
+          </Entrance>
         ))
       )}
 
@@ -162,9 +170,10 @@ const makeStyles = (t: ThemeTokens) => ({
     borderRadius: t.radii.xl,
     padding: t.spacing.xl,
     gap: t.spacing.xs,
-    backgroundColor: t.color.primaryMuted,
+    overflow: "hidden" as const,
     borderWidth: 1,
     borderColor: t.color.primary + "26",
+    ...t.shadow.soft,
   },
   heroMetaRow: {
     flexDirection: "row" as const,

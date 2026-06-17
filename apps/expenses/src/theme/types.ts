@@ -48,4 +48,10 @@ export interface ThemeTokens {
     medium: Shadow;
     strong: Shadow;
   };
+  // Two-stop gradients for premium surfaces (consumed via expo-linear-gradient).
+  gradient: {
+    brand: readonly [string, string]; // forest-green, for primary buttons / brand fills
+    surface: readonly [string, string]; // subtle tonal depth for cards/heroes
+    heroTint: readonly [string, string]; // faint brand-tinted header background
+  };
 }
