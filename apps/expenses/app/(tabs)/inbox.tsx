@@ -11,7 +11,7 @@ import { useAuth } from "../../src/providers/AuthProvider";
 import { SwipeableRow } from "../../src/components/SwipeableRow";
 import { useTheme, useThemedStyles } from "../../src/theme";
 import { ThemeTokens } from "../../src/theme/types";
-import { Text, Badge, Button, EmptyState } from "../../src/components/ui";
+import { Text, Badge, Button, EmptyState, Entrance } from "../../src/components/ui";
 import { formatMoney, formatDateShort } from "../../src/lib/format";
 
 type InboxStatus = "danger" | "info" | "warning" | "success";
@@ -201,14 +201,14 @@ export default function InboxScreen() {
             />
           </View>
         ) : (
-          items.map((item) => {
+          items.map((item, i) => {
             const state = getInboxState(item);
             const isReviewable = item.review_status === "diff_found";
             const isActing = pendingId === item.id;
 
             return (
+              <Entrance key={item.id} index={i}>
               <SwipeableRow
-                key={item.id}
                 disabled={!isReviewable}
                 triggerOnOpen
                 leftAction={
@@ -310,6 +310,7 @@ export default function InboxScreen() {
                   ) : null}
                 </Pressable>
               </SwipeableRow>
+              </Entrance>
             );
           })
         )}
@@ -321,7 +322,7 @@ export default function InboxScreen() {
 const makeStyles = (t: ThemeTokens) => ({
   safeArea: { flex: 1, backgroundColor: t.color.background },
   screen: { flex: 1, backgroundColor: t.color.background },
-  content: { padding: t.spacing.lg, gap: t.spacing.sm, paddingBottom: 120 },
+  content: { padding: t.spacing.lg, gap: t.spacing.md, paddingBottom: 120 },
   headerCard: {
     borderRadius: t.radii.xl,
     padding: t.spacing.lg,
@@ -376,13 +377,12 @@ const makeStyles = (t: ThemeTokens) => ({
   },
   cardColumn: {
     borderRadius: t.radii.lg,
-    padding: t.spacing.md,
-    gap: t.spacing.sm,
+    padding: t.spacing.lg,
+    gap: t.spacing.md,
     backgroundColor: t.color.surface,
-    borderWidth: 1,
-    borderColor: t.color.border,
+    ...t.shadow.soft,
   },
-  cardPressed: { backgroundColor: t.color.surfaceMuted },
+  cardPressed: { opacity: 0.85 },
   actionRow: { flexDirection: "row" as const, gap: t.spacing.sm, marginTop: 4 },
   approveBtn: {
     flex: 1,

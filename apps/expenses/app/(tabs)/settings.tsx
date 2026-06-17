@@ -54,7 +54,7 @@ export default function SettingsScreen() {
     <Screen scroll contentContainerStyle={{ gap: tokens.spacing.lg }}>
       <PageHeader title="Settings" subtitle={displayName} />
 
-      <Card style={{ gap: tokens.spacing.lg }}>
+      <Card variant="elevated" style={{ gap: tokens.spacing.lg }}>
         <View style={styles.cardHeader}>
           <View style={{ flex: 1, minWidth: 0 }}>
             <Text variant="headingMd">Expense digest</Text>
@@ -95,7 +95,7 @@ export default function SettingsScreen() {
         ) : null}
       </Card>
 
-      <Card style={{ gap: tokens.spacing.md }}>
+      <Card variant="elevated" style={{ gap: tokens.spacing.md }}>
         <Text variant="headingMd">Appearance</Text>
         <SegmentedControl<ThemeMode>
           options={[
@@ -108,7 +108,7 @@ export default function SettingsScreen() {
         />
       </Card>
 
-      <Card style={{ gap: tokens.spacing.md }}>
+      <Card variant="elevated" style={{ gap: tokens.spacing.md }}>
         <Text variant="headingMd">Account Profile</Text>
         <View style={styles.profileCard}>
           <Avatar initials={initials} size={56} />

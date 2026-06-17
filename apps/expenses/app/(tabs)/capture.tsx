@@ -5,12 +5,14 @@ import {
   Image,
   Pressable,
   ScrollView,
+  StyleSheet,
   TextInput,
   View,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { Audio } from "expo-av";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming } from "react-native-reanimated";
 
@@ -369,6 +371,12 @@ export default function CaptureScreen() {
 
         {/* ── Slim hero ── */}
         <View style={styles.heroCard}>
+          <LinearGradient
+            colors={tokens.gradient.heroTint as [string, string]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
           <View style={styles.heroTopRow}>
             <Text variant="headingXl" style={{ flex: 1 }} numberOfLines={2}>Capture in seconds</Text>
             <Pressable onPress={logout} hitSlop={10} accessibilityRole="button" accessibilityLabel="Sign out">
@@ -594,10 +602,10 @@ const makeStyles = (t: ThemeTokens) => ({
     borderRadius: t.radii.xl,
     padding: t.spacing.lg,
     gap: t.spacing.xs,
-    backgroundColor: t.color.primaryMuted,
     borderWidth: 1,
     borderColor: t.color.primary + "26",
     overflow: "hidden" as const,
+    ...t.shadow.soft,
   },
   heroTopRow: { flexDirection: "row" as const, justifyContent: "space-between" as const, alignItems: "center" as const, gap: t.spacing.md },
 
