@@ -12,6 +12,7 @@ import { UndoToast } from "../../src/components/UndoToast";
 import { useTheme, useThemedStyles } from "../../src/theme";
 import { ColorTokens } from "../../src/theme/types";
 import { Text, Input, FilterChip, Button, Divider } from "../../src/components/ui";
+import { formatMoney, formatDate } from "../../src/lib/format";
 
 // The list query yields the *input* shape of the expense-list schema (e.g.
 // `currency` is optional because the zod schema defaults it), which is wider
@@ -27,22 +28,6 @@ const filters = [
   { key: "week", label: "This week" },
   { key: "month", label: "This month" },
 ] as const;
-
-function formatMoney(amount: number, currency = "USD") {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 2,
-  }).format(amount ?? 0);
-}
-
-function formatDateLabel(dateString: string) {
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(new Date(`${dateString}T00:00:00`));
-}
 
 // Map a free-text category to an icon + a color token key (resolved per theme).
 function getCategoryMeta(category: string): { name: keyof typeof Feather.glyphMap; colorKey: keyof ColorTokens } {
@@ -285,7 +270,7 @@ export default function TimelineScreen() {
                       </View>
                       <View style={styles.cardMainFooter}>
                         <Text variant="bodySm" color="textSubtle">{item.category}</Text>
-                        <Text variant="bodySm" color="textMuted">{formatDateLabel(item.expense_date)}</Text>
+                        <Text variant="bodySm" color="textMuted">{formatDate(item.expense_date)}</Text>
                       </View>
                     </View>
                   </Pressable>

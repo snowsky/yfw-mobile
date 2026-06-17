@@ -15,6 +15,7 @@ import { scheduleOnRN } from "react-native-worklets";
 
 import { useTheme, useThemedStyles } from "../theme";
 import { ThemeTokens } from "../theme/types";
+import { formatMoney, formatDate } from "../lib/format";
 
 const { width: SCREEN_W } = Dimensions.get("window");
 const SWIPE_THRESHOLD = SCREEN_W * 0.35;
@@ -35,22 +36,6 @@ type SwipeCardProps = {
   onDecision: (decision: "approve" | "reject") => void;
   onOpenDetail: () => void;
 };
-
-function formatMoney(amount: number, currency = "USD") {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 2,
-  }).format(amount ?? 0);
-}
-
-function formatDateLabel(dateString: string) {
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(new Date(`${dateString}T00:00:00`));
-}
 
 export const SwipeCard = forwardRef<SwipeCardHandle, SwipeCardProps>(function SwipeCard(
   { item, onDecision, onOpenDetail },
@@ -129,7 +114,7 @@ export const SwipeCard = forwardRef<SwipeCardHandle, SwipeCardProps>(function Sw
         style={[styles.card, cardStyle]}
         accessibilityLabel={`Expense ${formatMoney(item.amount, item.currency)}, ${
           item.vendor ?? "unknown vendor"
-        }, ${item.category}, ${formatDateLabel(item.expense_date)}`}
+        }, ${item.category}, ${formatDate(item.expense_date)}`}
       >
         <Animated.View
           style={[styles.badge, styles.badgeApprove, approveStyle]}
@@ -152,7 +137,7 @@ export const SwipeCard = forwardRef<SwipeCardHandle, SwipeCardProps>(function Sw
         </Text>
         <View style={styles.metaRow}>
           <Text style={styles.metaText}>{item.category}</Text>
-          <Text style={styles.metaText}>{formatDateLabel(item.expense_date)}</Text>
+          <Text style={styles.metaText}>{formatDate(item.expense_date)}</Text>
         </View>
         <View style={styles.reviewPill}>
           <Feather name="edit-3" size={14} color={tokens.color.warning} />

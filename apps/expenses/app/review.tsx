@@ -11,18 +11,11 @@ import { SwipeCard, type SwipeCardHandle, type SwipeCardItem } from "../src/comp
 import { useTheme, useThemedStyles } from "../src/theme";
 import { ThemeTokens } from "../src/theme/types";
 import { Text, Button } from "../src/components/ui";
+import { formatMoney } from "../src/lib/format";
 
 const { width: SCREEN_W } = Dimensions.get("window");
 
 type Decision = { id: number; decision: "approve" | "reject" };
-
-function formatMoney(amount: number, currency = "USD") {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 2,
-  }).format(amount ?? 0);
-}
 
 export default function ReviewScreen() {
   const { accessToken } = useAuth();

@@ -11,6 +11,7 @@ import { SwipeableRow } from "../../src/components/SwipeableRow";
 import { useTheme, useThemedStyles } from "../../src/theme";
 import { ThemeTokens } from "../../src/theme/types";
 import { Text, Badge, Button, EmptyState } from "../../src/components/ui";
+import { formatMoney, formatDateShort } from "../../src/lib/format";
 
 type InboxStatus = "danger" | "info" | "warning" | "success";
 
@@ -29,21 +30,6 @@ function getInboxState(expense: { analysis_status?: string | null; review_status
     return { label: "Review changes", icon: "edit-3", status: "warning" };
   }
   return { label: "Ready to review", icon: "check-circle", status: "success" };
-}
-
-function formatMoney(amount: number, currency = "USD") {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 2,
-  }).format(amount ?? 0);
-}
-
-function formatDateLabel(dateString: string) {
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-  }).format(new Date(`${dateString}T00:00:00`));
 }
 
 export default function InboxScreen() {
@@ -276,7 +262,7 @@ export default function InboxScreen() {
 
                   <View style={styles.metaRow}>
                     <Text variant="bodyMd" color="textMuted" numberOfLines={1}>{item.category}</Text>
-                    <Text variant="bodyMd" color="textMuted">{formatDateLabel(item.expense_date)}</Text>
+                    <Text variant="bodyMd" color="textMuted">{formatDateShort(item.expense_date)}</Text>
                   </View>
 
                   <Text variant="bodySm" color="textSubtle">

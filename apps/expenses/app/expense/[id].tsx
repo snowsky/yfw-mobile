@@ -15,23 +15,7 @@ import { expensesApi, type Expense, type ExpenseUpdate } from "../../src/lib/api
 import { useTheme, useThemedStyles } from "../../src/theme";
 import { ThemeTokens, ColorTokens } from "../../src/theme/types";
 import { Input, Button, Text } from "../../src/components/ui";
-
-function formatMoney(amount: number | null | undefined, currency = "USD") {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 2,
-  }).format(amount ?? 0);
-}
-
-function formatDateLabel(dateString: string | null | undefined) {
-  if (!dateString) return "—";
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(new Date(`${dateString}T00:00:00`));
-}
+import { formatMoney, formatDate } from "../../src/lib/format";
 
 type FormState = {
   amount: string;
@@ -233,7 +217,7 @@ export default function ExpenseDetailScreen() {
               <View style={styles.heroMetaRow}>
                 <Text variant="bodySm" color="textMuted">{expense.category}</Text>
                 <Text variant="bodySm" color="textMuted">·</Text>
-                <Text variant="bodySm" color="textMuted">{formatDateLabel(expense.expense_date)}</Text>
+                <Text variant="bodySm" color="textMuted">{formatDate(expense.expense_date)}</Text>
               </View>
               <View style={styles.pillsRow}>
                 {expense.review_status ? (
